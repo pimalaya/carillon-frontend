@@ -9,3 +9,5 @@
 .vite
 *.tsbuildinfo
 .DS_Store
+/.direnv
+/.envrc
