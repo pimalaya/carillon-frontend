@@ -1,7 +1,8 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { apiFetch } from "@/lib/api";
 import { apiUrl } from "@/lib/config";
+import { queryKeys } from "./keys";
 import { parseOr } from "./parse";
 import {
   authResultSchema,
@@ -13,7 +14,6 @@ import {
   type AuthRequest,
   type AuthResult,
   type DiscoverResponse,
-  type MailboxesResponse,
   type TestRequest,
   type TestVerdict,
   type WebhookTestResult,
@@ -78,29 +78,46 @@ export function useSignout() {
   });
 }
 
-export interface ListMailboxesInput {
+export interface MailboxesQueryInput {
   imap_host: string;
   imap_port: number;
   login: string;
   /** Password flow: probe with LOGIN (unauthenticated). */
   password?: string;
-  /** OAuth flow: the capability link — the server resolves the stored
-   *  credential and mints a token. Sent instead of a password. */
+  /** Reuse flow: the capability link — the server resolves the PIM account's
+   *  stored credential (password or OAuth). Sent instead of a password. */
   link?: string;
+  /** Only fetch once the connection is known (e.g. a PIM account is chosen). */
+  enabled: boolean;
 }
 
 /**
- * POST /mailboxes — authenticate and LIST the account's selectable folders,
- * to fill the onboarding picker. Password flow sends the password (unauth);
- * OAuth flow sends the capability link so the server uses the stored token.
+ * POST /mailboxes — authenticate and LIST the account's selectable folders for
+ * the "Add service" picker. A *query* (keyed by the connection), not a mutation
+ * fired from an effect: the latter desyncs its observer under StrictMode, so the
+ * list would never appear. Fetches once per (link, login, host, port); switching
+ * the PIM account re-keys and refetches. (Password flow sends the password
+ * unauth; reuse flow sends the capability link so the server uses the stored cred.)
  */
-export function useListMailboxes() {
-  return useMutation<MailboxesResponse, Error, ListMailboxesInput>({
-    mutationFn: ({ link, password, ...rest }) =>
+export function useMailboxes({
+  imap_host,
+  imap_port,
+  login,
+  password,
+  link,
+  enabled,
+}: MailboxesQueryInput) {
+  return useQuery({
+    queryKey: queryKeys.mailboxes(link ?? null, login, imap_host, imap_port),
+    enabled,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: ({ signal }) =>
       apiFetch<unknown>("/mailboxes", {
         method: "POST",
-        body: { ...rest, password: password ?? "" },
+        body: { imap_host, imap_port, login, password: password ?? "" },
         token: link ?? null,
+        signal,
       }).then((d) => parseOr(mailboxesResponseSchema, d)),
   });
 }
@@ -183,6 +200,8 @@ export interface OauthResult {
   qresync?: boolean;
   /** Advisory: this mailbox already has a watch (create is a hard 409). */
   already_watched?: boolean;
+  /** Welcome-credit outcome for the joined PIM account. */
+  free_credit?: "granted" | "already_credited" | "already_claimed";
   login?: string;
   imap_host?: string;
   imap_port?: number;

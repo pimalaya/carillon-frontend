@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, Rocket, Send, Webhook, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -10,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Spinner } from "@/components/Spinner";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { useListMailboxes, useTestWebhook } from "@/api/onboarding";
+import { useMailboxes, useTestWebhook } from "@/api/onboarding";
 import { useCreateWatch } from "@/api/watches";
 import type { WebhookTestResult } from "@/api/schemas";
 import {
@@ -48,7 +48,6 @@ export function ServiceConfigureStage({
 }: ServiceConfigureProps) {
   const { activeLink } = useAuth();
   const createWatch = useCreateWatch();
-  const listMailboxes = useListMailboxes();
   const testWebhook = useTestWebhook();
   const [webhookResult, setWebhookResult] = useState<WebhookTestResult | null>(
     null,
@@ -57,34 +56,27 @@ export function ServiceConfigureStage({
   const urlValid = isValidNotifyUrl(state.notify_url);
   const busy = createWatch.isPending;
 
-  // Fetch the folder list whenever the target PIM account changes. The list is
-  // authenticated with the account's stored credential — we send the capability
-  // link and an empty password, and the server resolves it. (api.rs /mailboxes)
-  const lastFetched = useRef<string | null>(null);
-  useEffect(() => {
-    if (!state.mailbox_key || !state.imap_host) return;
-    if (lastFetched.current === state.mailbox_key) return;
-    lastFetched.current = state.mailbox_key;
-    if (!state.hmac_secret) update({ hmac_secret: randomSecret() });
-    listMailboxes.mutate(
-      {
-        imap_host: state.imap_host,
-        imap_port: state.imap_port,
-        login: state.login,
-        link: activeLink ?? undefined,
-      },
-      {
-        onSuccess: (res) => {
-          const names = res.mailboxes.map((m) => m.name);
-          if (names.length && !names.includes(state.mailbox))
-            update({ mailbox: names[0] });
-        },
-      },
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.mailbox_key]);
+  // Fetch the folder list for the chosen PIM account. The list is authenticated
+  // with the account's stored credential — we send the capability link and an
+  // empty password, and the server resolves it. Keyed by the connection, so
+  // switching accounts refetches. (api.rs /mailboxes)
+  const mailboxesQuery = useMailboxes({
+    imap_host: state.imap_host,
+    imap_port: state.imap_port,
+    login: state.login,
+    link: activeLink ?? undefined,
+    enabled: !!state.mailbox_key && !!state.imap_host,
+  });
+  const mailboxes = mailboxesQuery.data?.mailboxes ?? [];
 
-  const mailboxes = listMailboxes.data?.mailboxes ?? [];
+  // Default the folder to the first listed one (unless the current pick is in
+  // the list) once the folders arrive.
+  useEffect(() => {
+    const names = mailboxes.map((m) => m.name);
+    if (names.length && !names.includes(state.mailbox))
+      update({ mailbox: names[0] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailboxesQuery.data]);
 
   async function runWebhookTest() {
     if (!urlValid || !state.hmac_secret) return;
@@ -163,7 +155,7 @@ export function ServiceConfigureStage({
 
       <div className="space-y-2">
         <Label htmlFor="mailbox">Folder to watch</Label>
-        {listMailboxes.isError ? (
+        {mailboxesQuery.isError ? (
           <Input
             id="mailbox"
             value={state.mailbox}
@@ -174,7 +166,7 @@ export function ServiceConfigureStage({
           <Select
             id="mailbox"
             value={state.mailbox}
-            disabled={listMailboxes.isPending}
+            disabled={mailboxesQuery.isFetching}
             onChange={(e) => update({ mailbox: e.target.value })}
           >
             {/* Keep the current value selectable even before the list loads. */}
@@ -190,9 +182,9 @@ export function ServiceConfigureStage({
           </Select>
         )}
         <p className="text-xs text-muted-foreground">
-          {listMailboxes.isPending
+          {mailboxesQuery.isFetching
             ? "Loading your folders…"
-            : listMailboxes.isError
+            : mailboxesQuery.isError
               ? "Couldn’t list folders — type the folder name to watch."
               : "One service watches one folder. The inbox is the usual choice."}
         </p>

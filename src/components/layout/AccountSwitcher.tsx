@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check, ChevronsUpDown, LogOut, Plus } from "lucide-react";
 
@@ -11,11 +12,26 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { useMe } from "@/api/me";
 
-/** Multi-mailbox/account switcher — a client-side list of capability links. (D§5) */
+/** Carillon-account switcher — one entry per Carillon account (magic-link
+ *  identity / capability link) this browser knows. The credit pool is scoped to
+ *  the active one; PIM accounts live *under* it (filtered on the dashboard). */
 export function AccountSwitcher() {
   const navigate = useNavigate();
-  const { accounts, active, setActiveAccount, removeAccount } = useAuth();
+  const { accounts, active, setActiveAccount, removeAccount, renameAccount } =
+    useAuth();
+  const { data: me } = useMe();
+
+  // Label the active account with the Carillon email (the magic-link identity)
+  // once /me resolves it — so the top bar shows who you signed in as, not the
+  // "my account" placeholder or a PIM login.
+  const email = me?.balance.email;
+  useEffect(() => {
+    if (email && active && active.label !== email) {
+      renameAccount(active.id, email);
+    }
+  }, [email, active, renameAccount]);
 
   if (!active) return null;
 

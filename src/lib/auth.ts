@@ -16,7 +16,11 @@ import { shortId } from "./utils";
 export interface StoredAccount {
   /** Client-side id (not the server account id; purely for local bookkeeping). */
   id: string;
-  /** User-facing label — the mailbox email, or a nickname. */
+  /** The server's Carillon account id, when known. Identity across link
+   *  rotations: a re-auth/join can mint a NEW capability link for the SAME
+   *  account, so we match on this to avoid duplicate entries. */
+  accountId?: string;
+  /** User-facing label — the Carillon account email, or a nickname. */
   label: string;
   /** The capability link (bearer token). Never put this in a URL. */
   link: string;
@@ -87,14 +91,30 @@ export function getActiveLink(): string | null {
   return getActiveAccount()?.link ?? null;
 }
 
-/** Add (or refresh, by matching link) an account and make it active. */
+/**
+ * Add (or refresh) an account and make it active. Matches an existing local
+ * account by server `accountId` first — a re-auth/join can mint a fresh
+ * capability link for the SAME Carillon account, so we update the link in place
+ * instead of adding a duplicate — then falls back to matching by link. An empty
+ * `label` keeps the existing one (so adding a PIM account never renames the
+ * Carillon account).
+ */
 export function addAccount(input: {
   label: string;
   link: string;
+  accountId?: string;
 }): StoredAccount {
-  const existing = state.accounts.find((a) => a.link === input.link);
+  const existing =
+    (input.accountId &&
+      state.accounts.find((a) => a.accountId === input.accountId)) ||
+    state.accounts.find((a) => a.link === input.link);
   if (existing) {
-    const updated = { ...existing, label: input.label || existing.label };
+    const updated: StoredAccount = {
+      ...existing,
+      link: input.link,
+      label: input.label || existing.label,
+      accountId: input.accountId ?? existing.accountId,
+    };
     set({
       accounts: state.accounts.map((a) => (a.id === existing.id ? updated : a)),
       activeId: existing.id,
@@ -103,6 +123,7 @@ export function addAccount(input: {
   }
   const account: StoredAccount = {
     id: shortId("acct"),
+    accountId: input.accountId,
     label: input.label,
     link: input.link,
     addedAt: new Date().toISOString(),

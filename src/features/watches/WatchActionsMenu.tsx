@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MoreHorizontal, Pause, Play, Trash2 } from "lucide-react";
+import { Info, MoreHorizontal, Pause, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useMe } from "@/api/me";
 import { usePauseWatch, useResumeWatch, useDeleteWatch } from "@/api/watches";
 import type { Watch } from "@/api/schemas";
 
@@ -30,21 +31,35 @@ export function WatchActionsMenu({
   onDeleted?: () => void;
 }) {
   const navigate = useNavigate();
+  const { data: me } = useMe();
   const pause = usePauseWatch();
   const resume = useResumeWatch();
   const del = useDeleteWatch();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const paused = !watch.active;
+  // Pause/resume only apply while the service actually has a paid month running.
+  // When metered and not watching (never activated, or expired / out of
+  // credits), toggling `active` does nothing real — block it.
+  const metered = me?.metered ?? true;
+  const watching =
+    me?.balance.mailboxes.find((m) => m.watch_id === watch.id)?.watching ??
+    false;
 
   function toggle() {
+    if (metered && !watching) {
+      toast.error(
+        "Activate this service first — pause/resume only applies while it’s watching.",
+      );
+      return;
+    }
     if (paused) {
       resume.mutate(watch.id, {
         onSuccess: () => toast.success("Watch resumed"),
       });
     } else {
       pause.mutate(watch.id, {
-        onSuccess: () => toast.success("Watch paused — metering stops"),
+        onSuccess: () => toast.success("Watch paused"),
       });
     }
   }
@@ -70,7 +85,8 @@ export function WatchActionsMenu({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => navigate(`/watches/${watch.id}`)}>
-            Open
+            <Info />
+            Info
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={toggle}>
             {paused ? <Play /> : <Pause />}

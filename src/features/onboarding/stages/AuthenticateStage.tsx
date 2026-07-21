@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   KeyRound,
@@ -16,6 +17,7 @@ import { Spinner } from "@/components/Spinner";
 import { cn } from "@/lib/utils";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { queryKeys } from "@/api/keys";
 import {
   runOauthPopup,
   useAuthenticate,
@@ -41,6 +43,15 @@ function providerLabel(host: string): string {
  *  longer block on `already_watched` (service dedup lives at "Add service"). */
 function canContinue(v?: TestVerdict): boolean {
   return !!v?.ok;
+}
+
+/** Surface the welcome-credit outcome for a freshly-attached PIM account. */
+function toastFreeCredit(outcome?: string) {
+  if (outcome === "granted") {
+    toast.success("Welcome! 1 free credit added to your pool 🎁");
+  } else if (outcome === "already_claimed") {
+    toast("This mailbox’s free credit was already claimed by another account.");
+  }
 }
 
 /** Synthesises a {@link TestVerdict} from an OAuth callback result, so the
@@ -73,6 +84,7 @@ export function AuthenticateStage(props: StageProps) {
  *  No password is stored. Signing in *is* adding the account. */
 function OauthAuthenticate({ state, update, next, back }: StageProps) {
   const { hasAccount, addAccount } = useAuth();
+  const qc = useQueryClient();
   const oauthStart = useOauthStart();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +106,15 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
       });
       const result = await runOauthPopup(authorization_url);
       if (result.ok && result.link) {
-        addAccount({ label: state.login, link: result.link });
+        // Join keeps this under the same Carillon account (matched by accountId);
+        // empty label preserves its email. Refresh /me so the PIM account shows.
+        addAccount({
+          label: "",
+          link: result.link,
+          accountId: result.account_id,
+        });
+        toastFreeCredit(result.free_credit);
+        qc.invalidateQueries({ queryKey: queryKeys.me(result.link) });
         update({
           capabilityLink: result.link,
           account_id: result.account_id,
@@ -159,6 +179,7 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
 
 function PasswordAuthenticate({ state, update, next, back }: StageProps) {
   const { hasAccount, addAccount } = useAuth();
+  const qc = useQueryClient();
   const test = useTestConnect();
   const authenticate = useAuthenticate();
   const [adding, setAdding] = useState(false);
@@ -209,7 +230,11 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
         mailbox: state.mailbox,
         associate: hasAccount,
       });
-      addAccount({ label: state.login, link: auth.link });
+      // Same Carillon account (matched by accountId); empty label preserves its
+      // email. Refresh /me so the freshly-attached PIM account appears.
+      addAccount({ label: "", link: auth.link, accountId: auth.account_id });
+      toastFreeCredit(auth.free_credit);
+      qc.invalidateQueries({ queryKey: queryKeys.me(auth.link) });
       update({ capabilityLink: auth.link, account_id: auth.account_id });
       next();
     } catch (err) {

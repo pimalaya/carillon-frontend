@@ -61,6 +61,8 @@ const accounts = new Map<string, MockAccount>();
 const watches: MockWatch[] = [];
 const deliveries: Delivery[] = [];
 const magicTokens = new Map<string, string>();
+// Sybil barrier: mailbox_keys whose one free credit has already been claimed.
+const freeCreditClaims = new Set<string>();
 
 /** mailbox_key: the server normalises (login, host); we use the login for a
  *  readable label — the field is opaque to the UI either way. */
@@ -74,12 +76,21 @@ function newAccount(
   return { id, link, email, credits: 0, free_credited: false, memberships: [] };
 }
 
-/** Grant the one free credit on the first validated PIM account (idempotent). */
-function grantFreeCredit(account: MockAccount) {
-  if (!account.free_credited) {
-    account.credits += FREE_CREDITS;
-    account.free_credited = true;
-  }
+/**
+ * Claim the one free credit for a PIM account under the sybil barrier: granted
+ * only if the account hasn't been credited AND this mailbox_key hasn't been
+ * claimed by anyone. Mirrors the server's `claim_free_credit`.
+ */
+function claimFreeCredit(
+  account: MockAccount,
+  mailboxKey: string,
+): "granted" | "already_credited" | "already_claimed" {
+  if (account.free_credited) return "already_credited";
+  if (freeCreditClaims.has(mailboxKey)) return "already_claimed";
+  freeCreditClaims.add(mailboxKey);
+  account.credits += FREE_CREDITS;
+  account.free_credited = true;
+  return "granted";
 }
 
 function seed() {
@@ -106,6 +117,7 @@ function seed() {
     },
   ];
   accounts.set(DEMO_LINK, demo);
+  demo.memberships.forEach((m) => freeCreditClaims.add(m.mailbox_key));
 
   watches.push(
     mkWatch(
@@ -313,10 +325,12 @@ export const mockDb = {
   }): { status: string; id: string } | "duplicate" {
     const account_id = body.account_id ?? body.id;
     const mailbox = body.mailbox ?? "INBOX";
-    // Dedup a service by (login, service-type, target): one Watch IMAP service
-    // per (login, folder). Mirrors the server's 409. (api.rs service_already_watched)
+    // Dedup a service by (account, login, service-type, target): one Watch IMAP
+    // service per (login, folder) WITHIN an account. A different Carillon account
+    // may watch the same mailbox. Mirrors the server's per-account 409.
     const clash = watches.some(
       (w) =>
+        w.account_id === account_id &&
         w.login.toLowerCase() === body.login.toLowerCase() &&
         w.mailbox === mailbox,
     );
@@ -578,8 +592,8 @@ export function mockAuthenticate(body: {
       imap_host: body.imap_host,
     });
   }
-  // First validated PIM account earns the free credit.
-  grantFreeCredit(account);
+  // First Carillon account to validate this mailbox earns its free credit.
+  const free_credit = claimFreeCredit(account, key);
 
   return {
     account_id: account.id,
@@ -588,5 +602,6 @@ export function mockAuthenticate(body: {
     watchable: verdict.ok,
     idle: verdict.idle,
     qresync: verdict.qresync,
+    free_credit,
   };
 }

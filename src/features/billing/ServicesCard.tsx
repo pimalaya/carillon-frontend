@@ -58,8 +58,10 @@ function ServiceRow({ m }: { m: AccountMailbox }) {
               <CheckCircle2 className="size-3.5" />
               watching until {formatDate(m.watching_until)}
             </span>
+          ) : m.watching_until ? (
+            "expired — activate to resume"
           ) : (
-            "stopped"
+            "not watching — activate to start"
           )}
         </div>
       </div>

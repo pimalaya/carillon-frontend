@@ -54,7 +54,13 @@ export function VerifyPage() {
         signal: controller.signal,
       });
       const result = parseOr(magicVerifyResultSchema, data);
-      addAccount({ label: "my account", link: result.link });
+      // Label is a placeholder — the switcher syncs it to the Carillon account's
+      // email once /me loads. accountId ties this link to that account.
+      addAccount({
+        label: "my account",
+        link: result.link,
+        accountId: result.account_id,
+      });
       navigate("/", { replace: true });
     } catch (err) {
       // Tell a genuinely bad/expired token apart from "couldn't reach the

@@ -177,6 +177,19 @@ export interface AuthRequest {
 }
 
 /**
+ * Free-credit outcome when a PIM account is validated: the welcome credit was
+ * `granted`, the account had `already_credited` used its one credit, or this
+ * mailbox's credit was `already_claimed` by another Carillon account (the sybil
+ * barrier — the mailbox can still be watched, just without a free credit).
+ */
+export const freeCreditSchema = z.enum([
+  "granted",
+  "already_credited",
+  "already_claimed",
+]);
+export type FreeCredit = z.infer<typeof freeCreditSchema>;
+
+/**
  * Result of POST /auth. First auth `created` an account, a re-auth `recovered`
  * (re-minted) its link, an auth carrying a valid link `joined` the mailbox to
  * that account. `link` is the capability bearer — store it. (AuthResult)
@@ -188,6 +201,7 @@ export const authResultSchema = z.object({
   watchable: z.boolean(),
   idle: z.boolean(),
   qresync: z.boolean(),
+  free_credit: freeCreditSchema.optional(),
 });
 export type AuthResult = z.infer<typeof authResultSchema>;
 
