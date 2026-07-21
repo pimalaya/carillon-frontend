@@ -1,15 +1,21 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { CreditCard, LayoutDashboard, Plus, Radio, Settings } from 'lucide-react';
+import { NavLink, useNavigate } from "react-router-dom";
+import {
+  CreditCard,
+  LayoutDashboard,
+  Plus,
+  Radio,
+  Settings,
+} from "lucide-react";
 
-import { Brand } from './Brand';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Brand } from "./Brand";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/deliveries', label: 'Deliveries', icon: Radio, end: false },
-  { to: '/billing', label: 'Billing', icon: CreditCard, end: false },
-  { to: '/settings', label: 'Settings', icon: Settings, end: false },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/deliveries", label: "Deliveries", icon: Radio, end: false },
+  { to: "/billing", label: "Billing", icon: CreditCard, end: false },
+  { to: "/settings", label: "Settings", icon: Settings, end: false },
 ];
 
 export function Sidebar() {
@@ -20,9 +26,13 @@ export function Sidebar() {
         <Brand />
       </div>
       <div className="px-3">
-        <Button className="w-full justify-start" size="sm" onClick={() => navigate('/onboarding')}>
+        <Button
+          className="w-full justify-start"
+          size="sm"
+          onClick={() => navigate("/onboarding")}
+        >
           <Plus />
-          Add mailbox
+          Add account
         </Button>
       </div>
       <nav className="mt-4 flex flex-col gap-1 px-3">
@@ -33,10 +43,10 @@ export function Sidebar() {
             end={end}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? 'bg-secondary text-secondary-foreground'
-                  : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground',
+                  ? "bg-secondary text-secondary-foreground"
+                  : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
               )
             }
           >

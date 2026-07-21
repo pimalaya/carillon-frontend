@@ -1,16 +1,17 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { apiFetch } from '@/lib/api';
-import { useAuth } from '@/lib/auth';
-import { queryKeys } from './keys';
-import { patchMe } from './cache';
-import { parseOr } from './parse';
+import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { queryKeys } from "./keys";
+import { patchMe } from "./cache";
+import { parseOr } from "./parse";
 import {
+  activateResultSchema,
   createWatchResultSchema,
   rotateResultSchema,
   type CreateWatchRequest,
   type MeData,
-} from './schemas';
+} from "./schemas";
 
 // Watch mutations. The list itself lives in the /me cache (see api/me.ts); these
 // patch it optimistically and invalidate on settle. Endpoints are global on the
@@ -21,20 +22,21 @@ export function useCreateWatch() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateWatchRequest) =>
-      apiFetch<unknown>('/watches', { method: 'POST', body: input }).then((d) =>
+      apiFetch<unknown>("/watches", { method: "POST", body: input }).then((d) =>
         parseOr(createWatchResultSchema, d),
       ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.me(activeLink) }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.me(activeLink) }),
   });
 }
 
-function useActiveToggle(action: 'pause' | 'resume', active: boolean) {
+function useActiveToggle(action: "pause" | "resume", active: boolean) {
   const { activeLink } = useAuth();
   const qc = useQueryClient();
   const key = queryKeys.me(activeLink);
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch<unknown>(`/watches/${id}/${action}`, { method: 'POST' }),
+      apiFetch<unknown>(`/watches/${id}/${action}`, { method: "POST" }),
     onMutate: async (id: string) => {
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<MeData>(key);
@@ -52,11 +54,11 @@ function useActiveToggle(action: 'pause' | 'resume', active: boolean) {
 }
 
 export function usePauseWatch() {
-  return useActiveToggle('pause', false);
+  return useActiveToggle("pause", false);
 }
 
 export function useResumeWatch() {
-  return useActiveToggle('resume', true);
+  return useActiveToggle("resume", true);
 }
 
 export function useDeleteWatch() {
@@ -64,7 +66,8 @@ export function useDeleteWatch() {
   const qc = useQueryClient();
   const key = queryKeys.me(activeLink);
   return useMutation({
-    mutationFn: (id: string) => apiFetch<void>(`/watches/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) =>
+      apiFetch<void>(`/watches/${id}`, { method: "DELETE" }),
     onMutate: async (id: string) => {
       await qc.cancelQueries({ queryKey: key });
       const previous = qc.getQueryData<MeData>(key);
@@ -82,14 +85,66 @@ export function useDeleteWatch() {
 }
 
 /**
+ * POST /watches/{id}/activate — spend one credit to give a service a month of
+ * watching (§ BILLING_MODEL); stacks onto any time still remaining. `402` when
+ * the pool is empty. Invalidates /me so the new balance + activation show.
+ */
+export function useActivateWatch() {
+  const { activeLink } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<unknown>(`/watches/${id}/activate`, { method: "POST" }).then(
+        (d) => parseOr(activateResultSchema, d),
+      ),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: queryKeys.me(activeLink) }),
+  });
+}
+
+/** POST /watches/{id}/auto-renew — draw the next credit from the pool at expiry
+ *  instead of stopping. Optimistic on the /me cache. */
+export function useSetAutoRenew() {
+  const { activeLink } = useAuth();
+  const qc = useQueryClient();
+  const key = queryKeys.me(activeLink);
+  return useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
+      apiFetch<unknown>(`/watches/${id}/auto-renew`, {
+        method: "POST",
+        body: { enabled },
+      }),
+    onMutate: async ({ id, enabled }) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<MeData>(key);
+      patchMe(qc, activeLink, (me) => ({
+        ...me,
+        balance: {
+          ...me.balance,
+          mailboxes: me.balance.mailboxes.map((m) =>
+            m.watch_id === id ? { ...m, auto_renew: enabled } : m,
+          ),
+        },
+      }));
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+}
+
+/**
  * Rotate a watch's HMAC secret. Returns the NEW secret once (the server never
  * exposes it again), plus when the previous one stops being signed with.
  */
 export function useRotateSecret() {
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch<unknown>(`/watches/${id}/rotate-secret`, { method: 'POST', body: {} }).then(
-        (d) => parseOr(rotateResultSchema, d),
-      ),
+      apiFetch<unknown>(`/watches/${id}/rotate-secret`, {
+        method: "POST",
+        body: {},
+      }).then((d) => parseOr(rotateResultSchema, d)),
   });
 }

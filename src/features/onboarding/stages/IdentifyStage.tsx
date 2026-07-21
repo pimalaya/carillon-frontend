@@ -1,26 +1,30 @@
-import { useState } from 'react';
-import { Search, Settings2, TriangleAlert } from 'lucide-react';
+import { useState } from "react";
+import { Search, Settings2, TriangleAlert } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Spinner } from '@/components/Spinner';
-import { cn } from '@/lib/utils';
-import { useDiscover } from '@/api/onboarding';
-import type { AuthMethod, ImapChoice } from '@/api/schemas';
-import { guessImapHost, type StageProps } from '../types';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Spinner } from "@/components/Spinner";
+import { cn } from "@/lib/utils";
+import { useDiscover } from "@/api/onboarding";
+import type { AuthMethod, ImapChoice } from "@/api/schemas";
+import { guessImapHost, type StageProps } from "../types";
 
 /** The auth form a method maps to — the label shown on a choice. */
 function authLabel(auth: AuthMethod): string {
-  if (auth.kind === 'password') return 'Password';
-  if (auth.kind === 'bearer') return 'API token';
-  return 'OAuth';
+  if (auth.kind === "password") return "Password";
+  if (auth.kind === "bearer") return "API token";
+  return "OAuth";
 }
 
 /** Two choices are the same selection iff same server endpoint + auth form. */
-function sameChoice(a: { host: string; port: number }, b: ImapChoice, auth?: AuthMethod) {
+function sameChoice(
+  a: { host: string; port: number },
+  b: ImapChoice,
+  auth?: AuthMethod,
+) {
   return a.host === b.host && a.port === b.port && auth?.kind === b.auth.kind;
 }
 
@@ -38,8 +42,8 @@ function ChoiceCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        'flex w-full items-center justify-between gap-2 rounded-lg border p-3 text-left transition-colors',
-        selected ? 'border-primary ring-1 ring-primary' : 'hover:bg-muted/50',
+        "flex w-full items-center justify-between gap-2 rounded-lg border p-3 text-left transition-colors",
+        selected ? "border-primary ring-1 ring-primary" : "hover:bg-muted/50",
       )}
     >
       <div className="flex items-center gap-2">
@@ -48,7 +52,7 @@ function ChoiceCard({
           {choice.host}:{choice.port}
         </span>
       </div>
-      <Badge variant={choice.security === 'tls' ? 'secondary' : 'outline'}>
+      <Badge variant={choice.security === "tls" ? "secondary" : "outline"}>
         {choice.security.toUpperCase()}
       </Badge>
     </button>
@@ -64,7 +68,7 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
   const [manual, setManual] = useState(false);
   const discover = useDiscover();
 
-  const selectedNonTls = state.security && state.security !== 'tls';
+  const selectedNonTls = state.security && state.security !== "tls";
   // A config is chosen once we hold a host + an auth method to continue with.
   const canContinue = state.imap_host.trim().length > 0 && !!state.auth;
 
@@ -72,13 +76,14 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
     const input = query.trim();
     if (!input) return;
     // A typed email is the default login (the folder + login live in later steps).
-    if (input.includes('@')) update({ login: input });
+    if (input.includes("@")) update({ login: input });
     try {
       const res = await discover.mutateAsync(input);
       setChoices(res.choices);
       // Auto-pick the first TLS choice (password comes first per server), else
       // the first choice, so the common path is one step.
-      const best = res.choices.find((c) => c.security === 'tls') ?? res.choices[0];
+      const best =
+        res.choices.find((c) => c.security === "tls") ?? res.choices[0];
       if (best) {
         pick(best, input);
         setManual(false);
@@ -99,7 +104,7 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
       imap_port: choice.port,
       security: choice.security,
       auth: choice.auth,
-      login: state.login || (input.includes('@') ? input : ''),
+      login: state.login || (input.includes("@") ? input : ""),
     });
   }
 
@@ -113,15 +118,20 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
             placeholder="you@example.com  ·  or  imap.example.com"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && runDiscover()}
+            onKeyDown={(e) => e.key === "Enter" && runDiscover()}
           />
-          <Button variant="secondary" onClick={runDiscover} disabled={discover.isPending || !query.trim()}>
+          <Button
+            variant="secondary"
+            onClick={runDiscover}
+            disabled={discover.isPending || !query.trim()}
+          >
             {discover.isPending ? <Spinner /> : <Search />}
             Discover
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          We look up your provider’s IMAP settings and how to sign in — just pick one.
+          We look up your provider’s IMAP settings and how to sign in — just
+          pick one.
         </p>
       </div>
 
@@ -148,7 +158,9 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
           <Alert>
             <Search />
             <AlertTitle>No configuration found</AlertTitle>
-            <AlertDescription>Enter your IMAP server manually below.</AlertDescription>
+            <AlertDescription>
+              Enter your IMAP server manually below.
+            </AlertDescription>
           </Alert>
         ))}
 
@@ -157,8 +169,9 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
           <TriangleAlert />
           <AlertTitle>This endpoint isn’t TLS</AlertTitle>
           <AlertDescription>
-            Carillon watches over implicit TLS (usually port 993). STARTTLS/plain aren’t wired
-            yet — pick a TLS endpoint or set the host/port manually.
+            Carillon watches over implicit TLS (usually port 993).
+            STARTTLS/plain aren’t wired yet — pick a TLS endpoint or set the
+            host/port manually.
           </AlertDescription>
         </Alert>
       )}
@@ -187,8 +200,8 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
                 update({
                   imap_host: e.target.value,
                   // Manual entry implies a plain password login over TLS.
-                  security: state.security ?? 'tls',
-                  auth: state.auth ?? { kind: 'password' },
+                  security: state.security ?? "tls",
+                  auth: state.auth ?? { kind: "password" },
                 })
               }
             />

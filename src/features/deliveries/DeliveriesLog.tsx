@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { CheckCircle2, Inbox, XCircle } from 'lucide-react';
+import { useMemo } from "react";
+import { CheckCircle2, Inbox, XCircle } from "lucide-react";
 
 import {
   Table,
@@ -8,14 +8,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { EventBadge } from '@/components/EventBadge';
-import { EmptyState } from '@/components/EmptyState';
-import { useDeliveries } from '@/api/deliveries';
-import { useWatches } from '@/api/me';
-import { formatDateTime, formatRelativeTime } from '@/lib/format';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EventBadge } from "@/components/EventBadge";
+import { EmptyState } from "@/components/EmptyState";
+import { useDeliveries } from "@/api/deliveries";
+import { useWatches } from "@/api/me";
+import { formatDateTime, formatRelativeTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 interface DeliveriesLogProps {
   /** Filter to one watch (server-side). */
@@ -76,7 +76,7 @@ export function DeliveriesLog({
         title="No deliveries yet"
         description={
           emptyHint ??
-          'When a watched mailbox changes, the signed webhook fires and shows up here — UID only, never content.'
+          "When a watched mailbox changes, the signed webhook fires and shows up here — UID only, never content."
         }
       />
     );
@@ -116,13 +116,17 @@ export function DeliveriesLog({
               <TableCell>
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1.5 text-sm',
-                    d.ok ? 'text-success' : 'text-destructive',
+                    "inline-flex items-center gap-1.5 text-sm",
+                    d.ok ? "text-success" : "text-destructive",
                   )}
                   title={d.error ?? undefined}
                 >
-                  {d.ok ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
-                  {d.status ?? '—'}
+                  {d.ok ? (
+                    <CheckCircle2 className="size-4" />
+                  ) : (
+                    <XCircle className="size-4" />
+                  )}
+                  {d.status ?? "—"}
                 </span>
               </TableCell>
               <TableCell className="text-right tabular-nums text-muted-foreground">

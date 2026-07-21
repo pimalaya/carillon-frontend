@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
-import { Radio } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { Radio } from "lucide-react";
 
 import {
   Table,
@@ -8,14 +8,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { StatusBadge } from '@/components/StatusBadge';
-import { EmptyState } from '@/components/EmptyState';
-import { Button } from '@/components/ui/button';
-import { WatchActionsMenu } from './WatchActionsMenu';
-import { useWatches } from '@/api/me';
-import { formatRelativeTime } from '@/lib/format';
+} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatusBadge } from "@/components/StatusBadge";
+import { EmptyState } from "@/components/EmptyState";
+import { Button } from "@/components/ui/button";
+import { WatchActionsMenu } from "./WatchActionsMenu";
+import { useWatches } from "@/api/me";
+import { formatRelativeTime } from "@/lib/format";
 
 export function WatchesList() {
   const navigate = useNavigate();
@@ -35,9 +35,11 @@ export function WatchesList() {
     return (
       <EmptyState
         icon={<Radio />}
-        title="No watches yet"
-        description="Add a mailbox to start watching a folder. Carillon holds IMAP IDLE and fires a signed webhook the instant it changes."
-        action={<Button onClick={() => navigate('/onboarding')}>Add mailbox</Button>}
+        title="No services yet"
+        description="Add a service to watch a folder on one of your accounts. Carillon holds IMAP IDLE and fires a signed webhook the instant it changes."
+        action={
+          <Button onClick={() => navigate("/services/new")}>Add service</Button>
+        }
       />
     );
   }
@@ -62,10 +64,15 @@ export function WatchesList() {
             >
               <TableCell>
                 <div className="font-medium">{watch.login}</div>
-                <div className="text-xs text-muted-foreground">{watch.mailbox}</div>
+                <div className="text-xs text-muted-foreground">
+                  {watch.mailbox}
+                </div>
               </TableCell>
               <TableCell>
-                <StatusBadge active={watch.active} liveState={watch.liveState} />
+                <StatusBadge
+                  active={watch.active}
+                  liveState={watch.liveState}
+                />
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {formatRelativeTime(watch.lastEventAt)}

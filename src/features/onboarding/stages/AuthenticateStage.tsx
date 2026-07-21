@@ -1,37 +1,46 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, KeyRound, LayoutDashboard, Radio, ShieldCheck, XCircle } from 'lucide-react';
+import { useState } from "react";
+import {
+  CheckCircle2,
+  KeyRound,
+  ShieldCheck,
+  UserPlus,
+  XCircle,
+} from "lucide-react";
+import { toast } from "sonner";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Spinner } from '@/components/Spinner';
-import { cn } from '@/lib/utils';
-import { ApiError } from '@/lib/api';
-import { useAuth } from '@/lib/auth';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Spinner } from "@/components/Spinner";
+import { cn } from "@/lib/utils";
+import { ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import {
   runOauthPopup,
   useAuthenticate,
   useOauthStart,
   useTestConnect,
   type OauthResult,
-} from '@/api/onboarding';
-import type { TestVerdict } from '@/api/schemas';
-import type { StageProps } from '../types';
+} from "@/api/onboarding";
+import type { TestVerdict } from "@/api/schemas";
+import type { StageProps } from "../types";
 
 /** A friendly provider name from the IMAP host, for the OAuth button. */
 function providerLabel(host: string): string {
   const h = host.toLowerCase();
-  if (h.includes('gmail') || h.includes('google')) return 'Google';
-  if (h.includes('outlook') || h.includes('office') || h.includes('microsoft')) return 'Microsoft';
-  if (h.includes('fastmail')) return 'Fastmail';
-  return 'your provider';
+  if (h.includes("gmail") || h.includes("google")) return "Google";
+  if (h.includes("outlook") || h.includes("office") || h.includes("microsoft"))
+    return "Microsoft";
+  if (h.includes("fastmail")) return "Fastmail";
+  return "your provider";
 }
 
-/** Whether the wizard may advance: watchable AND not already watched. */
+/** Whether the account may be added: the mailbox is watchable. Re-adding an
+ *  account that already exists is fine — the server recovers it — so we no
+ *  longer block on `already_watched` (service dedup lives at "Add service"). */
 function canContinue(v?: TestVerdict): boolean {
-  return !!v?.ok && !v.already_watched;
+  return !!v?.ok;
 }
 
 /** Synthesises a {@link TestVerdict} from an OAuth callback result, so the
@@ -42,7 +51,7 @@ function verdictFromOauth(r: OauthResult): TestVerdict {
     ok: r.watchable ?? false,
     reachable: true,
     authenticated: true,
-    idle: !missing.includes('IDLE'),
+    idle: !missing.includes("IDLE"),
     qresync: r.qresync ?? false,
     condstore: r.qresync ?? false,
     missing,
@@ -53,17 +62,17 @@ function verdictFromOauth(r: OauthResult): TestVerdict {
 
 export function AuthenticateStage(props: StageProps) {
   // OAuth choices sign in with the provider; everything else probes over IMAP.
-  if (props.state.auth?.kind.startsWith('oauth')) {
+  if (props.state.auth?.kind.startsWith("oauth")) {
     return <OauthAuthenticate {...props} />;
   }
   return <PasswordAuthenticate {...props} />;
 }
 
-/** OAuth sign-in: a popup to the provider; the server keeps the refresh token
- *  and mints the capability link on the callback. No password is stored. */
+/** OAuth sign-in: a popup to the provider; the server keeps the refresh token,
+ *  stores it on the PIM account, and mints the capability link on the callback.
+ *  No password is stored. Signing in *is* adding the account. */
 function OauthAuthenticate({ state, update, next, back }: StageProps) {
   const { hasAccount, addAccount } = useAuth();
-  const navigate = useNavigate();
   const oauthStart = useOauthStart();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,13 +101,13 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
           verdict: verdictFromOauth(result),
         });
       } else {
-        setError(result.error ?? 'Sign-in failed.');
+        setError(result.error ?? "Sign-in failed.");
       }
     } catch (err) {
       setError(
         err instanceof ApiError && err.isRateLimited
-          ? 'Too many attempts — wait a moment before trying again.'
-          : 'Could not start sign-in. Please try again.',
+          ? "Too many attempts — wait a moment before trying again."
+          : "Could not start sign-in. Please try again.",
       );
     } finally {
       setBusy(false);
@@ -113,14 +122,16 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
         <ShieldCheck />
         <AlertTitle>Sign in with {provider}</AlertTitle>
         <AlertDescription>
-          A popup takes you to {provider} to authorize mail access. Carillon keeps a refresh token
-          — never your password.
+          A popup takes you to {provider} to authorize mail access. Carillon
+          keeps a refresh token — never your password.
         </AlertDescription>
       </Alert>
 
       <Button onClick={signIn} disabled={busy}>
         {busy ? <Spinner /> : <ShieldCheck />}
-        {signedIn ? `Re-authorize with ${provider}` : `Sign in with ${provider}`}
+        {signedIn
+          ? `Re-authorize with ${provider}`
+          : `Sign in with ${provider}`}
       </Button>
 
       {error && (
@@ -137,18 +148,10 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
         <Button variant="ghost" onClick={back}>
           Back
         </Button>
-        {/* Already watched = you're signed in (the link is minted); recovering
-            access from a new browser must not dead-end — go to the dashboard. */}
-        {state.verdict?.already_watched && state.capabilityLink ? (
-          <Button onClick={() => navigate('/')}>
-            <LayoutDashboard />
-            Go to my dashboard
-          </Button>
-        ) : (
-          <Button onClick={next} disabled={!canContinue(state.verdict)}>
-            Continue
-          </Button>
-        )}
+        <Button onClick={next} disabled={!canContinue(state.verdict)}>
+          <UserPlus />
+          Add account
+        </Button>
       </div>
     </div>
   );
@@ -156,31 +159,9 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
 
 function PasswordAuthenticate({ state, update, next, back }: StageProps) {
   const { hasAccount, addAccount } = useAuth();
-  const navigate = useNavigate();
   const test = useTestConnect();
   const authenticate = useAuthenticate();
-  const [recovering, setRecovering] = useState(false);
-
-  // Recovery from a new browser: the mailbox is already watched, so instead of
-  // adding a second watch, prove control via /auth to re-mint the capability
-  // link and drop the user on their dashboard.
-  async function goToDashboard() {
-    setRecovering(true);
-    try {
-      const auth = await authenticate.mutateAsync({
-        imap_host: state.imap_host,
-        imap_port: state.imap_port,
-        login: state.login,
-        password: state.password,
-        mailbox: state.mailbox,
-        associate: hasAccount,
-      });
-      addAccount({ label: state.login, link: auth.link });
-      navigate('/');
-    } catch {
-      setRecovering(false);
-    }
-  }
+  const [adding, setAdding] = useState(false);
 
   async function runTest() {
     update({ verdict: undefined });
@@ -196,8 +177,8 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
     } catch (err) {
       const message =
         err instanceof ApiError && err.isRateLimited
-          ? 'Too many attempts — wait a moment before trying again.'
-          : 'The connection test failed. Check the settings and try again.';
+          ? "Too many attempts — wait a moment before trying again."
+          : "The connection test failed. Check the settings and try again.";
       update({
         verdict: {
           ok: false,
@@ -214,6 +195,33 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
     }
   }
 
+  // Adding the account: /auth proves control, stores the credential on the PIM
+  // account, and mints (or recovers/joins) the capability link. The flow then
+  // finishes — services are added afterwards, reusing this credential.
+  async function addAccountNow() {
+    setAdding(true);
+    try {
+      const auth = await authenticate.mutateAsync({
+        imap_host: state.imap_host,
+        imap_port: state.imap_port,
+        login: state.login,
+        password: state.password,
+        mailbox: state.mailbox,
+        associate: hasAccount,
+      });
+      addAccount({ label: state.login, link: auth.link });
+      update({ capabilityLink: auth.link, account_id: auth.account_id });
+      next();
+    } catch (err) {
+      setAdding(false);
+      toast.error(
+        err instanceof ApiError && err.status === 401
+          ? "Authentication failed — check the password and try again."
+          : "Could not add the account. Please try again.",
+      );
+    }
+  }
+
   const canTest = state.login.trim().length > 0 && state.password.length > 0;
 
   return (
@@ -222,8 +230,8 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
         <KeyRound />
         <AlertTitle>Use an app password where possible</AlertTitle>
         <AlertDescription>
-          The password is sent to the server only for this read-only probe; it’s encrypted at
-          rest when you activate.
+          The password is sent to the server only for this read-only probe; it’s
+          encrypted at rest when you add the account.
         </AlertDescription>
       </Alert>
 
@@ -247,14 +255,18 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
           placeholder="••••••••"
           value={state.password}
           onChange={(e) => update({ password: e.target.value })}
-          onKeyDown={(e) => e.key === 'Enter' && canTest && runTest()}
+          onKeyDown={(e) => e.key === "Enter" && canTest && runTest()}
         />
         <p className="text-xs text-muted-foreground">
           Testing is free and repeatable — nothing is charged.
         </p>
       </div>
 
-      <Button variant="secondary" onClick={runTest} disabled={test.isPending || !canTest}>
+      <Button
+        variant="secondary"
+        onClick={runTest}
+        disabled={test.isPending || !canTest}
+      >
         {test.isPending ? <Spinner /> : <ShieldCheck />}
         Test connection
       </Button>
@@ -265,18 +277,13 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
         <Button variant="ghost" onClick={back}>
           Back
         </Button>
-        {/* Already watched = you already own this account; recover the link and
-            go to the dashboard rather than adding a second watch. */}
-        {state.verdict?.already_watched ? (
-          <Button onClick={goToDashboard} disabled={recovering}>
-            {recovering ? <Spinner /> : <LayoutDashboard />}
-            Go to my dashboard
-          </Button>
-        ) : (
-          <Button onClick={next} disabled={!canContinue(state.verdict)}>
-            Continue
-          </Button>
-        )}
+        <Button
+          onClick={addAccountNow}
+          disabled={!canContinue(state.verdict) || adding}
+        >
+          {adding ? <Spinner /> : <UserPlus />}
+          Add account
+        </Button>
       </div>
     </div>
   );
@@ -290,7 +297,9 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
       ) : (
         <XCircle className="size-4 text-muted-foreground" />
       )}
-      <span className={cn(ok ? 'text-foreground' : 'text-muted-foreground')}>{label}</span>
+      <span className={cn(ok ? "text-foreground" : "text-muted-foreground")}>
+        {label}
+      </span>
     </div>
   );
 }
@@ -306,15 +315,7 @@ function Verdict({ v }: { v: TestVerdict }) {
         <Check ok={v.idle} label="IDLE" />
         <Check ok={v.qresync} label="QRESYNC" />
       </div>
-      {v.already_watched ? (
-        <Alert variant="warning">
-          <Radio />
-          <AlertTitle>You already watch this mailbox</AlertTitle>
-          <AlertDescription>
-            No need to add it again — head to your dashboard to manage the existing watch.
-          </AlertDescription>
-        </Alert>
-      ) : v.ok ? (
+      {v.ok ? (
         v.qresync ? (
           <Alert variant="success">
             <ShieldCheck />
@@ -328,8 +329,8 @@ function Verdict({ v }: { v: TestVerdict }) {
             <ShieldCheck />
             <AlertTitle>Ready to watch — new messages only</AlertTitle>
             <AlertDescription>
-              This provider doesn’t support QRESYNC, so only new messages will be watched — flag
-              changes and deletions won’t be tracked.
+              This provider doesn’t support QRESYNC, so only new messages will
+              be watched — flag changes and deletions won’t be tracked.
             </AlertDescription>
           </Alert>
         )
@@ -340,8 +341,8 @@ function Verdict({ v }: { v: TestVerdict }) {
           <AlertDescription>
             {v.error ??
               (v.missing.length
-                ? `The server is missing: ${v.missing.join(', ')}.`
-                : 'One or more checks failed.')}
+                ? `The server is missing: ${v.missing.join(", ")}.`
+                : "One or more checks failed.")}
           </AlertDescription>
         </Alert>
       )}

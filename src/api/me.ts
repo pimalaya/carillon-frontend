@@ -1,10 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
-import { apiFetch } from '@/lib/api';
-import { useAuth } from '@/lib/auth';
-import { queryKeys } from './keys';
-import { parseOr } from './parse';
-import { meSchema, type MeData, type Watch } from './schemas';
+import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { queryKeys } from "./keys";
+import { parseOr } from "./parse";
+import { meSchema, type MeData, type Watch } from "./schemas";
 
 // GET /me is the scoped source of truth for the signed-in account: its members,
 // watches and subscription. The dashboard, watches list and billing all derive
@@ -19,7 +19,9 @@ export function useMe() {
     // keep it reasonably fresh.
     refetchInterval: 30_000,
     queryFn: ({ signal }) =>
-      apiFetch<unknown>('/me', { signal }).then((d) => parseOr(meSchema, d) as MeData),
+      apiFetch<unknown>("/me", { signal }).then(
+        (d) => parseOr(meSchema, d) as MeData,
+      ),
   });
 }
 

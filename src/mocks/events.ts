@@ -1,23 +1,35 @@
-import type { DeliveryEvent, WatchState } from '@/api/schemas';
-import type { StreamHandlers } from '@/lib/sse';
+import type { DeliveryEvent, WatchState } from "@/api/schemas";
+import type { StreamHandlers } from "@/lib/sse";
 
-import { mockDb } from './db';
+import { mockDb } from "./db";
 
 // Synthetic SSE generator standing in for carillon-server's GET /events. Emits
 // content-free `delivery` and `status` events (matching live.rs shapes) for the
 // active watches, so the "live log firing" moment works fully offline. Global,
 // like the real stream. (PLAN §6.1, §8)
 
-const EVENTS: DeliveryEvent[] = ['new', 'new', 'flags_added', 'flags_removed', 'removed'];
+const EVENTS: DeliveryEvent[] = [
+  "new",
+  "new",
+  "flags_added",
+  "flags_removed",
+  "removed",
+];
 const nowSecs = () => Math.floor(Date.now() / 1000);
 
 export function startMockStream(handlers: StreamHandlers): () => void {
-  handlers.onStatus?.('connecting');
+  handlers.onStatus?.("connecting");
   const open = setTimeout(() => {
-    handlers.onStatus?.('live');
+    handlers.onStatus?.("live");
     // Announce each active watch as watching.
     for (const id of mockDb.activeWatchIds()) {
-      handlers.onEvent({ type: 'status', account: id, state: 'watching', detail: null, at: nowSecs() });
+      handlers.onEvent({
+        type: "status",
+        account: id,
+        state: "watching",
+        detail: null,
+        at: nowSecs(),
+      });
     }
   }, 300);
 
@@ -29,15 +41,22 @@ export function startMockStream(handlers: StreamHandlers): () => void {
 
       // Every so often, flap a watch's status to exercise the live indicator.
       if (Math.random() < 0.12) {
-        const state: WatchState = Math.random() < 0.5 ? 'reconnecting' : 'watching';
-        handlers.onEvent({ type: 'status', account: id, state, detail: null, at: nowSecs() });
+        const state: WatchState =
+          Math.random() < 0.5 ? "reconnecting" : "watching";
+        handlers.onEvent({
+          type: "status",
+          account: id,
+          state,
+          detail: null,
+          at: nowSecs(),
+        });
         return;
       }
 
       const event = EVENTS[Math.floor(Math.random() * EVENTS.length)];
       const d = mockDb.pushDelivery(id, event);
       handlers.onEvent({
-        type: 'delivery',
+        type: "delivery",
         account: d.account,
         event: d.event,
         uid: d.uid,

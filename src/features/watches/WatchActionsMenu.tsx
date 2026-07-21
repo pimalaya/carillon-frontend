@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MoreHorizontal, Pause, Play, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { MoreHorizontal, Pause, Play, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   DropdownMenu,
@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -17,10 +17,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { usePauseWatch, useResumeWatch, useDeleteWatch } from '@/api/watches';
-import type { Watch } from '@/api/schemas';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { usePauseWatch, useResumeWatch, useDeleteWatch } from "@/api/watches";
+import type { Watch } from "@/api/schemas";
 
 export function WatchActionsMenu({
   watch,
@@ -39,10 +39,12 @@ export function WatchActionsMenu({
 
   function toggle() {
     if (paused) {
-      resume.mutate(watch.id, { onSuccess: () => toast.success('Watch resumed') });
+      resume.mutate(watch.id, {
+        onSuccess: () => toast.success("Watch resumed"),
+      });
     } else {
       pause.mutate(watch.id, {
-        onSuccess: () => toast.success('Watch paused — metering stops'),
+        onSuccess: () => toast.success("Watch paused — metering stops"),
       });
     }
   }
@@ -50,11 +52,11 @@ export function WatchActionsMenu({
   function confirmDelete() {
     del.mutate(watch.id, {
       onSuccess: () => {
-        toast.success('Watch deleted');
+        toast.success("Watch deleted");
         setConfirmOpen(false);
         onDeleted?.();
       },
-      onError: () => toast.error('Could not delete the watch'),
+      onError: () => toast.error("Could not delete the watch"),
     });
   }
 
@@ -72,7 +74,7 @@ export function WatchActionsMenu({
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={toggle}>
             {paused ? <Play /> : <Pause />}
-            {paused ? 'Resume' : 'Pause'}
+            {paused ? "Resume" : "Pause"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -93,15 +95,19 @@ export function WatchActionsMenu({
           <DialogHeader>
             <DialogTitle>Delete this watch?</DialogTitle>
             <DialogDescription>
-              Carillon will stop watching {watch.login} · {watch.mailbox} and drop its webhook
-              config. Metering stops. This can’t be undone.
+              Carillon will stop watching {watch.login} · {watch.mailbox} and
+              drop its webhook config. Metering stops. This can’t be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={del.isPending}>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={del.isPending}
+            >
               Delete watch
             </Button>
           </DialogFooter>

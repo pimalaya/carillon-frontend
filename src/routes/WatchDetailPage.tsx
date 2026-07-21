@@ -1,6 +1,6 @@
-import { useParams } from 'react-router-dom';
+import { useParams } from "react-router-dom";
 
-import { WatchDetail } from '@/features/watches/WatchDetail';
+import { WatchDetail } from "@/features/watches/WatchDetail";
 
 export function WatchDetailPage() {
   const { id } = useParams<{ id: string }>();

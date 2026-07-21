@@ -1,11 +1,11 @@
-import { Mailbox, PartyPopper } from 'lucide-react';
+import { Mailbox, PartyPopper } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { SecretField } from '@/components/SecretField';
-import { DeliveriesLog } from '@/features/deliveries/DeliveriesLog';
-import { useDeliveries } from '@/api/deliveries';
-import type { StageProps } from '../types';
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SecretField } from "@/components/SecretField";
+import { DeliveriesLog } from "@/features/deliveries/DeliveriesLog";
+import { useDeliveries } from "@/api/deliveries";
+import type { StageProps } from "../types";
 
 export function VerifyStage({ state, next, back }: StageProps) {
   // The app-wide SSE stream feeds this list; it fills once the watch settles
@@ -20,7 +20,7 @@ export function VerifyStage({ state, next, back }: StageProps) {
           <p className="text-sm font-medium">Signing secret</p>
           <SecretField value={state.hmac_secret} />
           <p className="text-xs text-muted-foreground">
-            Store it now — it verifies every webhook’s HMAC signature.{' '}
+            Store it now — it verifies every webhook’s HMAC signature.{" "}
             <a
               className="underline underline-offset-2"
               href="https://carillon.pimalaya.org/docs/verify"
@@ -46,9 +46,10 @@ export function VerifyStage({ state, next, back }: StageProps) {
           <Mailbox />
           <AlertTitle>Send yourself an email</AlertTitle>
           <AlertDescription>
-            Send a message to <strong>{state.login}</strong> (or just wait for the next one). The
-            delivery appears below the instant Carillon notices — no test button, because Carillon
-            never writes to your mailbox.
+            Send a message to <strong>{state.login}</strong> (or just wait for
+            the next one). The delivery appears below the instant Carillon
+            notices — no test button, because Carillon never writes to your
+            mailbox.
           </AlertDescription>
         </Alert>
       )}

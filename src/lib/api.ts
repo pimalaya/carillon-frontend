@@ -1,5 +1,5 @@
-import { apiUrl } from './config';
-import { getActiveLink } from './auth';
+import { apiUrl } from "./config";
+import { getActiveLink } from "./auth";
 
 // Typed fetch wrapper: prefixes the API base, attaches the active account's
 // capability link as `Authorization: Bearer`, and turns non-2xx responses into
@@ -17,9 +17,9 @@ export class ApiError extends Error {
   readonly details?: unknown;
 
   constructor(status: number, body: ApiErrorBody | string) {
-    const parsed = typeof body === 'string' ? { message: body } : body;
+    const parsed = typeof body === "string" ? { message: body } : body;
     super(parsed.message ?? `Request failed (${status})`);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.code = parsed.code;
     this.details = parsed.details;
@@ -36,7 +36,7 @@ export class ApiError extends Error {
 }
 
 export interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   /** JSON body; serialized automatically. */
   body?: unknown;
   /** AbortSignal for cancellation (TanStack Query passes one). */
@@ -49,7 +49,7 @@ export interface RequestOptions {
   query?: Record<string, string | number | boolean | undefined | null>;
 }
 
-function buildUrl(path: string, query?: RequestOptions['query']): string {
+function buildUrl(path: string, query?: RequestOptions["query"]): string {
   const url = apiUrl(path);
   if (!query) return url;
   const params = new URLSearchParams();
@@ -60,13 +60,16 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
   return qs ? `${url}?${qs}` : url;
 }
 
-export async function apiFetch<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, signal, query } = opts;
+export async function apiFetch<T>(
+  path: string,
+  opts: RequestOptions = {},
+): Promise<T> {
+  const { method = "GET", body, signal, query } = opts;
   const token = opts.token === undefined ? getActiveLink() : opts.token;
 
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(buildUrl(path, query), {
     method,

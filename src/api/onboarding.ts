@@ -1,8 +1,8 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 
-import { apiFetch } from '@/lib/api';
-import { apiUrl } from '@/lib/config';
-import { parseOr } from './parse';
+import { apiFetch } from "@/lib/api";
+import { apiUrl } from "@/lib/config";
+import { parseOr } from "./parse";
 import {
   authResultSchema,
   discoverResponseSchema,
@@ -17,7 +17,7 @@ import {
   type TestRequest,
   type TestVerdict,
   type WebhookTestResult,
-} from './schemas';
+} from "./schemas";
 
 // Onboarding + identity flows. /discover, /test and /auth are public
 // (pre-account) and rate-limited; /signout carries the capability link. (D§5)
@@ -30,9 +30,11 @@ import {
 export function useDiscover() {
   return useMutation<DiscoverResponse, Error, string>({
     mutationFn: (input) =>
-      apiFetch<unknown>('/discover', { method: 'POST', body: { input }, token: null }).then((d) =>
-        parseOr(discoverResponseSchema, d),
-      ),
+      apiFetch<unknown>("/discover", {
+        method: "POST",
+        body: { input },
+        token: null,
+      }).then((d) => parseOr(discoverResponseSchema, d)),
   });
 }
 
@@ -40,9 +42,11 @@ export function useDiscover() {
 export function useTestConnect() {
   return useMutation<TestVerdict, Error, TestRequest>({
     mutationFn: (input) =>
-      apiFetch<unknown>('/test', { method: 'POST', body: input, token: null }).then((d) =>
-        parseOr(testVerdictSchema, d),
-      ),
+      apiFetch<unknown>("/test", {
+        method: "POST",
+        body: input,
+        token: null,
+      }).then((d) => parseOr(testVerdictSchema, d)),
   });
 }
 
@@ -59,8 +63,8 @@ export interface AuthenticateInput extends AuthRequest {
 export function useAuthenticate() {
   return useMutation<AuthResult, Error, AuthenticateInput>({
     mutationFn: ({ associate, ...body }) =>
-      apiFetch<unknown>('/auth', {
-        method: 'POST',
+      apiFetch<unknown>("/auth", {
+        method: "POST",
         body,
         token: associate ? undefined : null,
       }).then((d) => parseOr(authResultSchema, d)),
@@ -70,7 +74,7 @@ export function useAuthenticate() {
 /** POST /signout — revoke the presented capability link server-side. */
 export function useSignout() {
   return useMutation<void, Error, void>({
-    mutationFn: () => apiFetch<void>('/signout', { method: 'POST' }),
+    mutationFn: () => apiFetch<void>("/signout", { method: "POST" }),
   });
 }
 
@@ -93,9 +97,9 @@ export interface ListMailboxesInput {
 export function useListMailboxes() {
   return useMutation<MailboxesResponse, Error, ListMailboxesInput>({
     mutationFn: ({ link, password, ...rest }) =>
-      apiFetch<unknown>('/mailboxes', {
-        method: 'POST',
-        body: { ...rest, password: password ?? '' },
+      apiFetch<unknown>("/mailboxes", {
+        method: "POST",
+        body: { ...rest, password: password ?? "" },
         token: link ?? null,
       }).then((d) => parseOr(mailboxesResponseSchema, d)),
   });
@@ -114,9 +118,11 @@ export interface TestWebhookInput {
 export function useTestWebhook() {
   return useMutation<WebhookTestResult, Error, TestWebhookInput>({
     mutationFn: (body) =>
-      apiFetch<unknown>('/webhook/test', { method: 'POST', body, token: null }).then((d) =>
-        parseOr(webhookTestResultSchema, d),
-      ),
+      apiFetch<unknown>("/webhook/test", {
+        method: "POST",
+        body,
+        token: null,
+      }).then((d) => parseOr(webhookTestResultSchema, d)),
   });
 }
 
@@ -142,15 +148,20 @@ export interface OauthStartInput {
 export function useOauthStart() {
   return useMutation<{ authorization_url: string }, Error, OauthStartInput>({
     mutationFn: ({ auth, associate, login, imap_host, imap_port, mailbox }) => {
-      const body: Record<string, unknown> = { login, imap_host, imap_port, mailbox };
-      if (auth.kind === 'oauth_issuer') body.issuer = auth.issuer;
+      const body: Record<string, unknown> = {
+        login,
+        imap_host,
+        imap_port,
+        mailbox,
+      };
+      if (auth.kind === "oauth_issuer") body.issuer = auth.issuer;
       else {
         body.authorization_endpoint = auth.authorization_endpoint;
         body.token_endpoint = auth.token_endpoint;
         body.scope = auth.scope;
       }
-      return apiFetch<{ authorization_url: string }>('/oauth/start', {
-        method: 'POST',
+      return apiFetch<{ authorization_url: string }>("/oauth/start", {
+        method: "POST",
         body,
         token: associate ? undefined : null,
       });
@@ -160,7 +171,7 @@ export function useOauthStart() {
 
 /** The result the /oauth/callback popup posts back. */
 export interface OauthResult {
-  type: 'carillon-oauth';
+  type: "carillon-oauth";
   ok: boolean;
   error?: string;
   link?: string;
@@ -184,29 +195,42 @@ export interface OauthResult {
  * Resolves `{ok:false}` if the popup is blocked or closed without completing.
  */
 export function runOauthPopup(authorizationUrl: string): Promise<OauthResult> {
-  const expectedOrigin = new URL(apiUrl('/')).origin;
+  const expectedOrigin = new URL(apiUrl("/")).origin;
   return new Promise((resolve) => {
-    const popup = window.open(authorizationUrl, 'carillon-oauth', 'width=520,height=680');
+    const popup = window.open(
+      authorizationUrl,
+      "carillon-oauth",
+      "width=520,height=680",
+    );
     if (!popup) {
-      resolve({ type: 'carillon-oauth', ok: false, error: 'Popup blocked — allow popups and retry.' });
+      resolve({
+        type: "carillon-oauth",
+        ok: false,
+        error: "Popup blocked — allow popups and retry.",
+      });
       return;
     }
     let done = false;
     const finish = (result: OauthResult) => {
       if (done) return;
       done = true;
-      window.removeEventListener('message', onMessage);
+      window.removeEventListener("message", onMessage);
       clearInterval(timer);
       resolve(result);
     };
     const onMessage = (event: MessageEvent) => {
       if (event.origin !== expectedOrigin) return;
       const data = event.data as OauthResult | undefined;
-      if (data?.type === 'carillon-oauth') finish(data);
+      if (data?.type === "carillon-oauth") finish(data);
     };
-    window.addEventListener('message', onMessage);
+    window.addEventListener("message", onMessage);
     const timer = window.setInterval(() => {
-      if (popup.closed) finish({ type: 'carillon-oauth', ok: false, error: 'Sign-in window was closed.' });
+      if (popup.closed)
+        finish({
+          type: "carillon-oauth",
+          ok: false,
+          error: "Sign-in window was closed.",
+        });
     }, 500);
   });
 }

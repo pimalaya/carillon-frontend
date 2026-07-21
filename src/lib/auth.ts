@@ -1,6 +1,6 @@
-import { useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from "react";
 
-import { shortId } from './utils';
+import { shortId } from "./utils";
 
 // ── Login-less accounts (D§5) ────────────────────────────────────────────────
 //
@@ -29,13 +29,13 @@ interface AuthState {
   activeId: string | null;
 }
 
-const ACCOUNTS_KEY = 'carillon.accounts';
-const ACTIVE_KEY = 'carillon.activeAccountId';
+const ACCOUNTS_KEY = "carillon.accounts";
+const ACTIVE_KEY = "carillon.activeAccountId";
 
 function load(): AuthState {
   try {
     const accounts: StoredAccount[] = JSON.parse(
-      localStorage.getItem(ACCOUNTS_KEY) ?? '[]',
+      localStorage.getItem(ACCOUNTS_KEY) ?? "[]",
     );
     const storedActive = localStorage.getItem(ACTIVE_KEY);
     const activeId =
@@ -64,8 +64,8 @@ function set(next: AuthState) {
 }
 
 // Keep tabs in sync: another tab adding/switching an account updates this one.
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
     if (e.key === ACCOUNTS_KEY || e.key === ACTIVE_KEY) {
       state = load();
       listeners.forEach((l) => l());
@@ -88,7 +88,10 @@ export function getActiveLink(): string | null {
 }
 
 /** Add (or refresh, by matching link) an account and make it active. */
-export function addAccount(input: { label: string; link: string }): StoredAccount {
+export function addAccount(input: {
+  label: string;
+  link: string;
+}): StoredAccount {
   const existing = state.accounts.find((a) => a.link === input.link);
   if (existing) {
     const updated = { ...existing, label: input.label || existing.label };
@@ -99,7 +102,7 @@ export function addAccount(input: { label: string; link: string }): StoredAccoun
     return updated;
   }
   const account: StoredAccount = {
-    id: shortId('acct'),
+    id: shortId("acct"),
     label: input.label,
     link: input.link,
     addedAt: new Date().toISOString(),

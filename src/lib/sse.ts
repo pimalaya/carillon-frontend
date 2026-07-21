@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
 
-import { apiUrl, config } from './config';
-import { getActiveLink, useAuth } from './auth';
-import { streamEventSchema, type StreamEvent } from '@/api/schemas';
+import { apiUrl, config } from "./config";
+import { getActiveLink, useAuth } from "./auth";
+import { streamEventSchema, type StreamEvent } from "@/api/schemas";
 
 // Live stream: carillon-server's GET /events is a content-free SSE feed of
 // named events — `delivery`, `status`, `notice` (plus `lagged`) — each data
@@ -13,7 +13,7 @@ import { streamEventSchema, type StreamEvent } from '@/api/schemas';
 // parse the SSE frames ourselves, carrying the Bearer link. In mock mode a
 // synthetic generator stands in so the "live log firing" moment works offline.
 
-export type StreamStatus = 'idle' | 'connecting' | 'live' | 'stale';
+export type StreamStatus = "idle" | "connecting" | "live" | "stale";
 
 export interface StreamHandlers {
   onEvent: (event: StreamEvent) => void;
@@ -22,7 +22,7 @@ export interface StreamHandlers {
 
 // The named events we render; anything else (`lagged`, keep-alive comments) is
 // ignored rather than surfaced.
-const NAMED_EVENTS = new Set(['delivery', 'status', 'notice']);
+const NAMED_EVENTS = new Set(["delivery", "status", "notice"]);
 // Reconnect backoff ceiling: 0.5s · 2^(n-1), capped so a dead server is retried
 // at most every ~16s.
 const MAX_RETRY_STEP = 6;
@@ -36,7 +36,7 @@ export function openEventStream(handlers: StreamHandlers): () => void {
     let cancelled = false;
     let dispose: (() => void) | undefined;
     // Dev-only; loaded lazily so it tree-shakes out of a production build.
-    import('@/mocks/events').then(({ startMockStream }) => {
+    import("@/mocks/events").then(({ startMockStream }) => {
       if (cancelled) return;
       dispose = startMockStream(handlers);
     });
@@ -53,39 +53,43 @@ export function openEventStream(handlers: StreamHandlers): () => void {
   async function connect() {
     const link = getActiveLink();
     if (!link) {
-      handlers.onStatus?.('idle');
+      handlers.onStatus?.("idle");
       return;
     }
-    handlers.onStatus?.('connecting');
+    handlers.onStatus?.("connecting");
     try {
-      const res = await fetch(apiUrl('/events'), {
-        headers: { Authorization: `Bearer ${link}`, Accept: 'text/event-stream' },
+      const res = await fetch(apiUrl("/events"), {
+        headers: {
+          Authorization: `Bearer ${link}`,
+          Accept: "text/event-stream",
+        },
         signal: controller.signal,
       });
-      if (!res.ok || !res.body) throw new Error(`stream failed (${res.status})`);
+      if (!res.ok || !res.body)
+        throw new Error(`stream failed (${res.status})`);
 
-      handlers.onStatus?.('live');
+      handlers.onStatus?.("live");
       retry = 0;
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = '';
+      let buffer = "";
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         // SSE frames are separated by a blank line.
         let sep: number;
-        while ((sep = buffer.indexOf('\n\n')) !== -1) {
+        while ((sep = buffer.indexOf("\n\n")) !== -1) {
           dispatchFrame(buffer.slice(0, sep), handlers);
           buffer = buffer.slice(sep + 2);
         }
       }
       // A clean end still means we lost the live feed: fall through to retry.
-      throw new Error('stream ended');
+      throw new Error("stream ended");
     } catch {
       if (closed || controller.signal.aborted) return;
-      handlers.onStatus?.('stale');
+      handlers.onStatus?.("stale");
       retry = Math.min(retry + 1, MAX_RETRY_STEP);
       const wait = 500 * 2 ** (retry - 1);
       setTimeout(() => {
@@ -104,16 +108,17 @@ export function openEventStream(handlers: StreamHandlers): () => void {
 
 /** Parse one SSE frame (`event:`/`data:` lines) and dispatch a known event. */
 function dispatchFrame(frame: string, handlers: StreamHandlers) {
-  let event = 'message';
+  let event = "message";
   const dataLines: string[] = [];
-  for (const raw of frame.split('\n')) {
-    const line = raw.replace(/\r$/, '');
-    if (line.startsWith(':')) continue; // comment / keep-alive
-    if (line.startsWith('event:')) event = line.slice(6).trim();
-    else if (line.startsWith('data:')) dataLines.push(line.slice(5).replace(/^ /, ''));
+  for (const raw of frame.split("\n")) {
+    const line = raw.replace(/\r$/, "");
+    if (line.startsWith(":")) continue; // comment / keep-alive
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:"))
+      dataLines.push(line.slice(5).replace(/^ /, ""));
   }
   if (!NAMED_EVENTS.has(event)) return;
-  const parsed = streamEventSchema.safeParse(safeParse(dataLines.join('\n')));
+  const parsed = streamEventSchema.safeParse(safeParse(dataLines.join("\n")));
   if (parsed.success) handlers.onEvent(parsed.data);
 }
 
@@ -130,8 +135,11 @@ function safeParse(data: string): unknown {
  * the connection status. Re-subscribes when the active account (its link)
  * changes, so the stream is always scoped to what's on screen.
  */
-export function useEventStream(enabled: boolean, onEvent: (event: StreamEvent) => void) {
-  const [status, setStatus] = useState<StreamStatus>('idle');
+export function useEventStream(
+  enabled: boolean,
+  onEvent: (event: StreamEvent) => void,
+) {
+  const [status, setStatus] = useState<StreamStatus>("idle");
   const { activeLink } = useAuth();
   // Keep the latest callback without re-subscribing on every render.
   const handlerRef = useRef(onEvent);
@@ -139,7 +147,7 @@ export function useEventStream(enabled: boolean, onEvent: (event: StreamEvent) =
 
   useEffect(() => {
     if (!enabled || !activeLink) {
-      setStatus('idle');
+      setStatus("idle");
       return;
     }
     const cleanup = openEventStream({

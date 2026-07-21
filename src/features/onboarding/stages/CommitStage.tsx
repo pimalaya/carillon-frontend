@@ -1,9 +1,9 @@
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { CheckCircle2 } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import type { StageProps } from '../types';
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import type { StageProps } from "../types";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -25,7 +25,8 @@ export function CommitStage({ state }: StageProps) {
         </span>
         <h2 className="text-lg font-semibold">Watch is live</h2>
         <p className="text-sm text-muted-foreground">
-          Metering has started. It only runs while the watch is active — pause it any time.
+          Metering has started. It only runs while the watch is active — pause
+          it any time.
         </p>
       </div>
 
@@ -41,11 +42,14 @@ export function CommitStage({ state }: StageProps) {
 
       <div className="flex justify-center gap-2">
         {state.watchId && (
-          <Button variant="outline" onClick={() => navigate(`/watches/${state.watchId}`)}>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/watches/${state.watchId}`)}
+          >
             View this watch
           </Button>
         )}
-        <Button onClick={() => navigate('/')}>Go to dashboard</Button>
+        <Button onClick={() => navigate("/")}>Go to dashboard</Button>
       </div>
     </div>
   );

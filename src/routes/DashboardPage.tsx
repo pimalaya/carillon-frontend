@@ -1,11 +1,11 @@
-import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { Plus, Radio } from "lucide-react";
 
-import { PageHeader } from '@/components/PageHeader';
-import { Button } from '@/components/ui/button';
-import { WatchesList } from '@/features/watches/WatchesList';
-import { SubscriptionCard } from '@/features/billing/SubscriptionCard';
-import { DeliveriesLog } from '@/features/deliveries/DeliveriesLog';
+import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { WatchesList } from "@/features/watches/WatchesList";
+import { CreditsCard } from "@/features/billing/CreditsCard";
+import { DeliveriesLog } from "@/features/deliveries/DeliveriesLog";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -13,12 +13,18 @@ export function DashboardPage() {
     <div>
       <PageHeader
         title="Dashboard"
-        description="Your watches and subscription at a glance."
+        description="Your watches and credits at a glance."
         action={
-          <Button onClick={() => navigate('/onboarding')}>
-            <Plus />
-            Add mailbox
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate("/services/new")}>
+              <Radio />
+              Add service
+            </Button>
+            <Button onClick={() => navigate("/onboarding")}>
+              <Plus />
+              Add account
+            </Button>
+          </div>
         }
       />
       <div className="grid gap-6 lg:grid-cols-3">
@@ -33,7 +39,7 @@ export function DashboardPage() {
           </section>
         </div>
         <div className="space-y-6">
-          <SubscriptionCard />
+          <CreditsCard />
         </div>
       </div>
     </div>

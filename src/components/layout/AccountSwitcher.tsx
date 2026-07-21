@@ -1,5 +1,5 @@
-import { useNavigate } from 'react-router-dom';
-import { Check, ChevronsUpDown, LogOut, Plus } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { Check, ChevronsUpDown, LogOut, Plus } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -8,9 +8,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/lib/auth';
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
 
 /** Multi-mailbox/account switcher — a client-side list of capability links. (D§5) */
 export function AccountSwitcher() {
@@ -22,7 +22,7 @@ export function AccountSwitcher() {
   function signOut() {
     if (!active) return;
     removeAccount(active.id);
-    navigate('/');
+    navigate("/");
   }
 
   return (
@@ -36,15 +36,20 @@ export function AccountSwitcher() {
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel>Accounts</DropdownMenuLabel>
         {accounts.map((acct) => (
-          <DropdownMenuItem key={acct.id} onSelect={() => setActiveAccount(acct.id)}>
-            <Check className={acct.id === active.id ? 'opacity-100' : 'opacity-0'} />
+          <DropdownMenuItem
+            key={acct.id}
+            onSelect={() => setActiveAccount(acct.id)}
+          >
+            <Check
+              className={acct.id === active.id ? "opacity-100" : "opacity-0"}
+            />
             <span className="truncate">{acct.label}</span>
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => navigate('/onboarding')}>
+        <DropdownMenuItem onSelect={() => navigate("/onboarding")}>
           <Plus />
-          Add mailbox
+          Add account
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={signOut}>
           <LogOut />

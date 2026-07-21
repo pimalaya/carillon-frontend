@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // Typed API boundary — mirrors carillon-server's OpenAPI contract
 // (carillon-server/docs/openapi.yaml) field-for-field. Wire fields are
@@ -27,7 +27,12 @@ export type WatchView = z.infer<typeof watchViewSchema>;
  * Live connection state, delivered over SSE `status` events (not the REST
  * view, which only exposes `active`). (live.rs WatchState)
  */
-export const watchStateSchema = z.enum(['watching', 'reconnecting', 'error', 'stopped']);
+export const watchStateSchema = z.enum([
+  "watching",
+  "reconnecting",
+  "error",
+  "stopped",
+]);
 export type WatchState = z.infer<typeof watchStateSchema>;
 
 /** REST view + client-side live overlay (from SSE). Rendered by the UI. */
@@ -81,7 +86,7 @@ export type RotateResult = z.infer<typeof rotateResultSchema>;
  * endpoints where known. Surfaced now; OAuth login is wired later. (AuthMethod)
  */
 export const authMethodSchema = z.object({
-  kind: z.enum(['password', 'bearer', 'oauth', 'oauth_device', 'oauth_issuer']),
+  kind: z.enum(["password", "bearer", "oauth", "oauth_device", "oauth_issuer"]),
   authorization_endpoint: z.string().optional(),
   token_endpoint: z.string().optional(),
   device_authorization_endpoint: z.string().optional(),
@@ -98,7 +103,7 @@ export type AuthMethod = z.infer<typeof authMethodSchema>;
 export const imapChoiceSchema = z.object({
   host: z.string(),
   port: z.number(),
-  security: z.enum(['tls', 'starttls', 'plain']),
+  security: z.enum(["tls", "starttls", "plain"]),
   auth: authMethodSchema,
 });
 export type ImapChoice = z.infer<typeof imapChoiceSchema>;
@@ -178,7 +183,7 @@ export interface AuthRequest {
  */
 export const authResultSchema = z.object({
   account_id: z.string(),
-  action: z.enum(['created', 'recovered', 'joined']),
+  action: z.enum(["created", "recovered", "joined"]),
   link: z.string(),
   watchable: z.boolean(),
   idle: z.boolean(),
@@ -186,38 +191,36 @@ export const authResultSchema = z.object({
 });
 export type AuthResult = z.infer<typeof authResultSchema>;
 
-// ── Accounts & per-mailbox subscription ───────────────────────────────────────
+// ── Account & credit pool (per-service, § BILLING_MODEL) ──────────────────────
 
-/** A member mailbox's own subscription + free-trial state, within an account
- *  view. Subscriptions are per-mailbox. */
+/** Credits per pack — the only refill unit. Mirrors billing.rs PACK_SIZE. */
+export const PACK_SIZE = 5;
+
+/** A service (or proven-but-unwatched mailbox) within an account view, with its
+ *  per-service activation state. */
 export const accountMailboxSchema = z.object({
-  /** Null for a proven mailbox that has no watch yet. */
-  watch_id: z.string().nullable(),
   mailbox_key: z.string(),
-  /** Whether this mailbox's one-time free trial is still open. */
-  trial_active: z.boolean(),
-  /** Unix seconds the free trial ends, or null. */
-  trial_expires: z.number().nullable().optional(),
-  /** Whether this mailbox's own subscription is active (incl. dunning grace). */
-  subscribed: z.boolean(),
-  /** Coarse status: `active`/`trialing`/`past_due`/`canceled` from Stripe,
-   *  `trial` when only the free trial is open, else `none`. */
-  status: z.string(),
-  /** Plan id this mailbox is subscribed on (`month`/`year`), if any. */
-  plan: z.string().nullable().optional(),
-  /** Unix seconds this mailbox's paid period ends, if subscribed. */
-  current_period_end: z.number().nullable().optional(),
-  /** Whether a billing-portal session can be opened (a Stripe customer exists). */
-  can_manage: z.boolean().default(false),
+  /** The service (watch) on this PIM account, or null (proven, no service yet). */
+  watch_id: z.string().nullable(),
+  /** The watched folder — distinguishes several services on one PIM account. */
+  mailbox: z.string().nullable().optional(),
+  /** Unix seconds watching is paid up to; null/past = not currently watching. */
+  watching_until: z.number().nullable().optional(),
+  /** Currently watching (a paid month in the future). */
+  watching: z.boolean().default(false),
+  /** Next credit drawn from the pool at expiry. */
+  auto_renew: z.boolean().default(false),
 });
 export type AccountMailbox = z.infer<typeof accountMailboxSchema>;
 
-/** Public view of a billing account: each mailbox's own subscription +
- *  free-trial state (subscriptions are per-mailbox). (AccountView) */
+/** Public view of a Carillon account: the prepaid credit pool and each service's
+ *  activation state. 1 credit = one service-month. (AccountView) */
 export const accountViewSchema = z.object({
   id: z.string(),
-  /** Whether any of the account's mailboxes may currently watch. */
-  entitled: z.boolean(),
+  /** Magic-link email identity, if any. */
+  email: z.string().nullable().optional(),
+  /** Fungible credit-pool balance. */
+  credits: z.number().default(0),
   mailboxes: z.array(accountMailboxSchema).default([]),
 });
 export type AccountView = z.infer<typeof accountViewSchema>;
@@ -236,6 +239,8 @@ export const meSchema = z.object({
   mailboxes: z.array(membershipSchema).default([]),
   watches: z.array(watchViewSchema).default([]),
   balance: accountViewSchema,
+  /** Whether watching is credit-metered (SaaS); false on an unmetered self-host. */
+  metered: z.boolean().default(true),
 });
 export type Me = z.infer<typeof meSchema>;
 
@@ -244,15 +249,15 @@ export type Me = z.infer<typeof meSchema>;
  * (liveState/lastEventAt) the SSE stream patches into the cache. This is what
  * the UI reads.
  */
-export type MeData = Omit<Me, 'watches'> & { watches: Watch[] };
+export type MeData = Omit<Me, "watches"> & { watches: Watch[] };
 
 // ── Deliveries ────────────────────────────────────────────────────────────────
 
 export const deliveryEventSchema = z.enum([
-  'new',
-  'flags_added',
-  'flags_removed',
-  'removed',
+  "new",
+  "flags_added",
+  "flags_removed",
+  "removed",
 ]);
 export type DeliveryEvent = z.infer<typeof deliveryEventSchema>;
 
@@ -273,47 +278,52 @@ export const deliverySchema = z.object({
 });
 export type Delivery = z.infer<typeof deliverySchema>;
 
-// ── Billing (subscription) ─────────────────────────────────────────────────────
+// ── Billing (credit packs) ────────────────────────────────────────────────────
 
-/** A subscription plan (`month`/`year`); the price is the provider's, shown on
- *  its hosted checkout page. `cadence_secs` is the nominal billing period. */
-export const planSchema = z.object({
-  id: z.string(),
-  cadence_secs: z.number(),
-});
-export type Plan = z.infer<typeof planSchema>;
-
-export const plansResponseSchema = z.object({
-  provider: z.string(),
-  plans: z.array(planSchema).default([]),
-});
-export type PlansResponse = z.infer<typeof plansResponseSchema>;
-
+/** Result of POST /billing/checkout — a pending session + the provider checkout
+ *  URL. The pool is credited on the verified webhook (mock settles immediately). */
 export const checkoutResponseSchema = z.object({
   provider: z.string(),
   session_id: z.string(),
   checkout_url: z.string(),
-  plan: z.string(),
-  mailbox_key: z.string(),
+  packs: z.number(),
+  credits: z.number(),
 });
 export type CheckoutResponse = z.infer<typeof checkoutResponseSchema>;
 
-export const portalResponseSchema = z.object({
-  portal_url: z.string(),
+/** Result of POST /watches/{id}/activate. */
+export const activateResultSchema = z.object({
+  status: z.string(),
+  id: z.string(),
+  watching_until: z.number(),
+  credits: z.number(),
 });
-export type PortalResponse = z.infer<typeof portalResponseSchema>;
+export type ActivateResult = z.infer<typeof activateResultSchema>;
+
+// ── Magic-link sign-in ────────────────────────────────────────────────────────
+
+/** Result of POST /auth/magic/verify — the account and its capability link. */
+export const magicVerifyResultSchema = z.object({
+  account_id: z.string(),
+  link: z.string(),
+});
+export type MagicVerifyResult = z.infer<typeof magicVerifyResultSchema>;
 
 // ── SSE stream (named events: `delivery`, `status`, `notice`) ──────────────────
 //
 // Each event's data JSON carries a `type` tag matching its event name.
 // Content-free, like everything else. (live.rs LiveEvent)
 
-export const noticeKindSchema = z.enum(['trial_ending', 'watch_paused']);
+export const noticeKindSchema = z.enum([
+  "watch_ending",
+  "watch_stopped",
+  "low_pool",
+]);
 export type NoticeKind = z.infer<typeof noticeKindSchema>;
 
-export const streamEventSchema = z.discriminatedUnion('type', [
+export const streamEventSchema = z.discriminatedUnion("type", [
   z.object({
-    type: z.literal('delivery'),
+    type: z.literal("delivery"),
     account: z.string(),
     event: deliveryEventSchema,
     uid: z.number(),
@@ -323,14 +333,14 @@ export const streamEventSchema = z.discriminatedUnion('type', [
     at: z.number(),
   }),
   z.object({
-    type: z.literal('status'),
+    type: z.literal("status"),
     account: z.string(),
     state: watchStateSchema,
     detail: z.string().nullable().optional(),
     at: z.number(),
   }),
   z.object({
-    type: z.literal('notice'),
+    type: z.literal("notice"),
     account: z.string(),
     kind: noticeKindSchema,
     detail: z.string().nullable().optional(),

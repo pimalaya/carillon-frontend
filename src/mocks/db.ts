@@ -1,34 +1,36 @@
 import type {
+  AccountMailbox,
   AccountView,
   AuthResult,
   CheckoutResponse,
   Delivery,
   DeliveryEvent,
   Me,
-  PlansResponse,
   TestVerdict,
   WatchView,
-} from '@/api/schemas';
+} from "@/api/schemas";
 
 // In-browser mock backend, faithful to carillon-server's OpenAPI wire shapes
 // (snake_case, unix seconds). It stands in when there's no real server to point
 // at; the real testing path is VITE_API_BASE_URL + VITE_ENABLE_MOCKS=false.
 // Dev-only — lazily imported. (PLAN §7)
+//
+// Model: per-service credit pool (§ BILLING_MODEL). 1 credit = one month
+// watching one service (watch). Refill in packs of 5.
 
-export const DEMO_LINK = 'demo-cap-2f9a8c1e';
+export const DEMO_LINK = "demo-cap-2f9a8c1e";
 
 const DAY = 86_400;
-const TRIAL_SECS = 7 * DAY;
-const SUB_GRACE = 3 * DAY;
-
-const PLANS = [
-  { id: 'month', cadence_secs: 30 * DAY },
-  { id: 'year', cadence_secs: 365 * DAY },
-];
+const MONTH = 30 * DAY;
+const PACK_SIZE = 5;
+const FREE_CREDITS = 1;
 
 interface MockWatch extends WatchView {
   hmac_secret: string;
   account_id: string;
+  /** Unix seconds watching is paid up to; null = never activated. */
+  watching_until: number | null;
+  auto_renew: boolean;
 }
 
 interface Membership {
@@ -37,85 +39,128 @@ interface Membership {
   imap_host: string;
 }
 
-interface MockSubscription {
-  /** null | 'active' | 'trialing' | 'past_due' | 'canceled'. */
-  sub_status: string | null;
-  sub_current_period_end: number | null;
-  stripe_customer_id: string | null;
-  plan: string | null;
-}
-
 interface MockAccount {
   id: string;
   link: string | null;
+  email: string | null;
+  credits: number;
+  free_credited: boolean;
   memberships: Membership[];
-  /** mailbox_key → trial expiry (unix seconds). */
-  trials: Map<string, number>;
-  /** mailbox_key → its own subscription (subscriptions are per-mailbox). */
-  subscriptions: Map<string, MockSubscription>;
 }
 
 let deliverySeq = 1000;
 const nowSecs = () => Math.floor(Date.now() / 1000);
 const randHex = (n = 16) =>
-  Array.from({ length: n }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  Array.from({ length: n }, () =>
+    Math.floor(Math.random() * 16).toString(16),
+  ).join("");
 
-// The mock keeps watches and deliveries global (as the server does), plus a map
-// of accounts keyed by capability link.
+// Watches and deliveries are global (as the server keeps them); accounts are
+// keyed by capability link. Magic-link tokens map to the email they prove.
 const accounts = new Map<string, MockAccount>();
 const watches: MockWatch[] = [];
 const deliveries: Delivery[] = [];
+const magicTokens = new Map<string, string>();
 
 /** mailbox_key: the server normalises (login, host); we use the login for a
  *  readable label — the field is opaque to the UI either way. */
 const mailboxKey = (login: string) => login.toLowerCase();
 
-const cadenceSecs = (plan: string) => PLANS.find((p) => p.id === plan)?.cadence_secs ?? 30 * DAY;
+function newAccount(
+  id: string,
+  link: string | null,
+  email: string | null = null,
+): MockAccount {
+  return { id, link, email, credits: 0, free_credited: false, memberships: [] };
+}
 
-function newAccount(id: string, link: string | null): MockAccount {
-  return {
-    id,
-    link,
-    memberships: [],
-    trials: new Map(),
-    subscriptions: new Map(),
-  };
+/** Grant the one free credit on the first validated PIM account (idempotent). */
+function grantFreeCredit(account: MockAccount) {
+  if (!account.free_credited) {
+    account.credits += FREE_CREDITS;
+    account.free_credited = true;
+  }
 }
 
 function seed() {
-  // The demo account shows both per-mailbox states at once: one mailbox
-  // subscribed (Manage), one still on its free trial (Subscribe).
-  const demo = newAccount('acct_demo', DEMO_LINK);
-  const fastmail = mailboxKey('demo@fastmail.com');
-  const posteo = mailboxKey('demo@posteo.net');
+  // The demo account holds a small pool and three services in the three states
+  // worth showing: healthy, ending-soon (auto-renew on), and not-yet-activated.
+  const demo = newAccount("acct_demo", DEMO_LINK, "demo@fastmail.com");
+  demo.credits = 6;
+  demo.free_credited = true;
   demo.memberships = [
-    { mailbox_key: fastmail, login: 'demo@fastmail.com', imap_host: 'imap.fastmail.com' },
-    { mailbox_key: posteo, login: 'demo@posteo.net', imap_host: 'posteo.de' },
+    {
+      mailbox_key: mailboxKey("demo@fastmail.com"),
+      login: "demo@fastmail.com",
+      imap_host: "imap.fastmail.com",
+    },
+    {
+      mailbox_key: mailboxKey("demo@posteo.net"),
+      login: "demo@posteo.net",
+      imap_host: "posteo.de",
+    },
+    {
+      mailbox_key: mailboxKey("demo@gmail.com"),
+      login: "demo@gmail.com",
+      imap_host: "imap.gmail.com",
+    },
   ];
-  demo.trials = new Map([
-    [fastmail, nowSecs() - DAY], // trial lapsed, but subscribed below
-    [posteo, nowSecs() + 4 * DAY], // still on trial
-  ]);
-  demo.subscriptions = new Map([
-    [
-      fastmail,
-      {
-        sub_status: 'active',
-        sub_current_period_end: nowSecs() + 24 * DAY,
-        stripe_customer_id: 'cus_demo',
-        plan: 'month',
-      },
-    ],
-  ]);
   accounts.set(DEMO_LINK, demo);
 
   watches.push(
-    mkWatch('wch_inbox', 'demo@fastmail.com', 'imap.fastmail.com', 'INBOX', 'https://hooks.example.com/carillon/inbox', true, demo.id),
-    mkWatch('wch_archive', 'demo@fastmail.com', 'imap.fastmail.com', 'Archive', 'https://hooks.example.com/carillon/archive', true, demo.id),
-    mkWatch('wch_posteo', 'demo@posteo.net', 'posteo.de', 'INBOX', 'https://hooks.example.com/carillon/posteo', false, demo.id),
+    mkWatch(
+      "wch_fastmail",
+      "demo@fastmail.com",
+      "imap.fastmail.com",
+      "INBOX",
+      "https://hooks.example.com/carillon/fastmail",
+      true,
+      demo.id,
+      nowSecs() + 20 * DAY,
+      false,
+    ),
+    // A second service on the SAME PIM account (different folder) — multi-service.
+    mkWatch(
+      "wch_fastmail_archive",
+      "demo@fastmail.com",
+      "imap.fastmail.com",
+      "Archive",
+      "https://hooks.example.com/carillon/fastmail-archive",
+      true,
+      demo.id,
+      null,
+      false,
+    ),
+    mkWatch(
+      "wch_posteo",
+      "demo@posteo.net",
+      "posteo.de",
+      "INBOX",
+      "https://hooks.example.com/carillon/posteo",
+      true,
+      demo.id,
+      nowSecs() + 2 * DAY,
+      true,
+    ),
+    mkWatch(
+      "wch_gmail",
+      "demo@gmail.com",
+      "imap.gmail.com",
+      "INBOX",
+      "https://hooks.example.com/carillon/gmail",
+      true,
+      demo.id,
+      null,
+      false,
+    ),
   );
 
-  const events: DeliveryEvent[] = ['new', 'flags_added', 'flags_removed', 'removed'];
+  const events: DeliveryEvent[] = [
+    "new",
+    "flags_added",
+    "flags_removed",
+    "removed",
+  ];
   for (let i = 0; i < 24; i += 1) {
     const watch = watches[i % 2];
     const ok = i % 7 !== 0;
@@ -125,7 +170,7 @@ function seed() {
       uid: 41200 + i * 3,
       ok,
       status: ok ? 200 : 502,
-      error: ok ? null : 'connection refused',
+      error: ok ? null : "connection refused",
       attempts: ok ? 1 : 3,
       at: nowSecs() - (i * 900 + 120),
     });
@@ -141,6 +186,8 @@ function mkWatch(
   notify_url: string,
   active: boolean,
   account_id: string,
+  watching_until: number | null,
+  auto_renew: boolean,
 ): MockWatch {
   return {
     id,
@@ -152,6 +199,8 @@ function mkWatch(
     active,
     hmac_secret: `whsec_${randHex(24)}`,
     account_id,
+    watching_until,
+    auto_renew,
   };
 }
 
@@ -167,60 +216,62 @@ function resolve(link: string): MockAccount {
 }
 
 function byId(id: string): MockAccount | undefined {
-  for (const account of accounts.values()) if (account.id === id) return account;
+  for (const account of accounts.values())
+    if (account.id === id) return account;
+  return undefined;
+}
+
+function byEmail(email: string): MockAccount | undefined {
+  for (const account of accounts.values())
+    if (account.email === email) return account;
   return undefined;
 }
 
 function toWatchView(w: MockWatch): WatchView {
-  const { hmac_secret: _s, account_id: _a, ...view } = w;
+  const {
+    hmac_secret: _s,
+    account_id: _a,
+    watching_until: _u,
+    auto_renew: _r,
+    ...view
+  } = w;
   return view;
 }
 
-function subscriptionActive(sub: MockSubscription | undefined): boolean {
-  if (!sub) return false;
-  if (!(sub.sub_status === 'active' || sub.sub_status === 'trialing' || sub.sub_status === 'past_due')) {
-    return false;
-  }
-  return sub.sub_current_period_end === null || nowSecs() < sub.sub_current_period_end + SUB_GRACE;
-}
-
 function accountView(account: MockAccount): AccountView {
-  const keyed = new Map<string, string | null>();
-  for (const m of account.memberships) if (!keyed.has(m.mailbox_key)) keyed.set(m.mailbox_key, null);
+  const now = nowSecs();
+  const covered = new Set<string>();
+  const mailboxes: AccountMailbox[] = [];
   for (const w of watches.filter((w) => w.account_id === account.id)) {
-    keyed.set(mailboxKey(w.login), w.id);
+    const key = mailboxKey(w.login);
+    covered.add(key);
+    mailboxes.push({
+      mailbox_key: key,
+      watch_id: w.id,
+      mailbox: w.mailbox,
+      watching_until: w.watching_until,
+      watching: w.watching_until !== null && now < w.watching_until,
+      auto_renew: w.auto_renew,
+    });
   }
-
-  let entitled = false;
-  const mailboxes = [...keyed.entries()].map(([mailbox_key, watch_id]) => {
-    const expires = account.trials.get(mailbox_key) ?? null;
-    const trial_active = expires !== null && nowSecs() < expires;
-    const sub = account.subscriptions.get(mailbox_key);
-    const subscribed = subscriptionActive(sub);
-    entitled = entitled || trial_active || subscribed;
-
-    const status = subscribed
-      ? (sub?.sub_status ?? 'active')
-      : trial_active
-        ? 'trial'
-        : sub?.sub_status === 'canceled' || sub?.sub_status === 'past_due'
-          ? sub.sub_status
-          : 'none';
-
-    return {
-      watch_id,
-      mailbox_key,
-      trial_active,
-      trial_expires: expires,
-      subscribed,
-      status,
-      plan: sub?.plan ?? null,
-      current_period_end: sub?.sub_current_period_end ?? null,
-      can_manage: !!sub?.stripe_customer_id,
-    };
-  });
-
-  return { id: account.id, entitled, mailboxes };
+  for (const m of account.memberships) {
+    if (!covered.has(m.mailbox_key)) {
+      mailboxes.push({
+        mailbox_key: m.mailbox_key,
+        watch_id: null,
+        mailbox: null,
+        watching_until: null,
+        watching: false,
+        auto_renew: false,
+      });
+    }
+  }
+  return {
+    id: account.id,
+    email: account.email,
+    credits: account.credits,
+    mailboxes,
+  };
 }
 
 seed();
@@ -237,8 +288,11 @@ export const mockDb = {
         login: m.login,
         imap_host: m.imap_host,
       })),
-      watches: watches.filter((w) => w.account_id === account.id).map(toWatchView),
+      watches: watches
+        .filter((w) => w.account_id === account.id)
+        .map(toWatchView),
       balance: accountView(account),
+      metered: true,
     };
   },
 
@@ -256,26 +310,33 @@ export const mockDb = {
     hmac_secret: string;
     account_id?: string;
     active?: boolean;
-  }): { status: string; id: string } {
+  }): { status: string; id: string } | "duplicate" {
     const account_id = body.account_id ?? body.id;
+    const mailbox = body.mailbox ?? "INBOX";
+    // Dedup a service by (login, service-type, target): one Watch IMAP service
+    // per (login, folder). Mirrors the server's 409. (api.rs service_already_watched)
+    const clash = watches.some(
+      (w) =>
+        w.login.toLowerCase() === body.login.toLowerCase() &&
+        w.mailbox === mailbox,
+    );
+    if (clash) return "duplicate";
     const watch: MockWatch = {
       id: body.id,
       imap_host: body.imap_host,
       imap_port: body.imap_port ?? 993,
       login: body.login,
-      mailbox: body.mailbox ?? 'INBOX',
+      mailbox,
       notify_url: body.notify_url,
       active: body.active ?? true,
       hmac_secret: body.hmac_secret,
       account_id,
+      watching_until: null,
+      auto_renew: false,
     };
     watches.unshift(watch);
-    // Ensure the billing account exists and grant the mailbox its trial window.
-    const account = byId(account_id) ?? resolve(`orphan-${account_id}`);
-    if (!account.trials.has(mailboxKey(body.login))) {
-      account.trials.set(mailboxKey(body.login), nowSecs() + TRIAL_SECS);
-    }
-    return { status: 'ok', id: watch.id };
+    byId(account_id) ?? resolve(`orphan-${account_id}`);
+    return { status: "ok", id: watch.id };
   },
 
   setActive(id: string, active: boolean): boolean {
@@ -292,12 +353,47 @@ export const mockDb = {
     return true;
   },
 
-  rotateSecret(id: string): { status: string; secret: string; prev_expires_at: number } | null {
+  rotateSecret(
+    id: string,
+  ): { status: string; secret: string; prev_expires_at: number } | null {
     const watch = watches.find((w) => w.id === id);
     if (!watch) return null;
     const secret = `whsec_${randHex(24)}`;
     watch.hmac_secret = secret;
-    return { status: 'ok', secret, prev_expires_at: nowSecs() + DAY };
+    return { status: "ok", secret, prev_expires_at: nowSecs() + DAY };
+  },
+
+  /** POST /watches/{id}/activate — spend one credit, stack onto remaining time. */
+  activate(
+    id: string,
+  ):
+    | { status: "ok"; id: string; watching_until: number; credits: number }
+    | "gone"
+    | "no_credits" {
+    const watch = watches.find((w) => w.id === id);
+    if (!watch) return "gone";
+    const account = byId(watch.account_id);
+    if (!account || account.credits < 1) return "no_credits";
+    account.credits -= 1;
+    const now = nowSecs();
+    const base =
+      watch.watching_until && watch.watching_until > now
+        ? watch.watching_until
+        : now;
+    watch.watching_until = base + MONTH;
+    return {
+      status: "ok",
+      id,
+      watching_until: watch.watching_until,
+      credits: account.credits,
+    };
+  },
+
+  setAutoRenew(id: string, enabled: boolean): boolean {
+    const watch = watches.find((w) => w.id === id);
+    if (!watch) return false;
+    watch.auto_renew = enabled;
+    return true;
   },
 
   deliveries(watchId: string | undefined, limit: number): Delivery[] {
@@ -315,7 +411,7 @@ export const mockDb = {
       uid: 41000 + (deliverySeq++ % 5000),
       ok,
       status: ok ? 200 : 502,
-      error: ok ? null : 'connection refused',
+      error: ok ? null : "connection refused",
       attempts: ok ? 1 : 3,
       at: nowSecs(),
     };
@@ -336,38 +432,46 @@ export const mockDb = {
     return account ? accountView(account) : null;
   },
 
-  plans(): PlansResponse {
-    return { provider: 'mock', plans: PLANS };
-  },
-
-  checkout(link: string, plan: string, mailbox_key: string): CheckoutResponse | null {
-    if (!PLANS.some((p) => p.id === plan)) return null;
-    // A real provider redirects to Stripe; the mock activates immediately.
+  /** POST /billing/checkout — buy `packs` packs. A real provider redirects to
+   *  Stripe; the mock credits the pool immediately. */
+  checkout(link: string, packs: number): CheckoutResponse {
     const account = resolve(link);
-    const existing = account.subscriptions.get(mailbox_key);
-    account.subscriptions.set(mailbox_key, {
-      sub_status: 'active',
-      sub_current_period_end: nowSecs() + cadenceSecs(plan),
-      stripe_customer_id: existing?.stripe_customer_id ?? `cus_mock_${randHex(8)}`,
-      plan,
-    });
+    const credits = packs * PACK_SIZE;
+    account.credits += credits;
     return {
-      provider: 'mock',
+      provider: "mock",
       session_id: randHex(12),
-      checkout_url: `${location.origin}/#/billing?checkout=success`,
-      plan,
-      mailbox_key,
+      checkout_url: `${location.origin}/billing?checkout=success`,
+      packs,
+      credits,
     };
-  },
-
-  portal(link: string, mailbox_key: string): string | null {
-    const sub = accounts.get(link)?.subscriptions.get(mailbox_key);
-    if (!sub?.stripe_customer_id) return null;
-    return `${location.origin}/#/billing?portal=mock`;
   },
 
   signout(link: string): boolean {
     return accounts.delete(link);
+  },
+
+  // ── Magic-link sign-in ──────────────────────────────────────────────────────
+  magicRequest(email: string): string {
+    const token = `magic-${randHex(20)}`;
+    magicTokens.set(token, email.toLowerCase());
+    // No email is actually sent in the mock; log the verify URL for dev sign-in.
+    // eslint-disable-next-line no-console
+    console.info(`[mock] magic link: ${location.origin}/verify?token=${token}`);
+    return token;
+  },
+
+  magicVerify(token: string): { account_id: string; link: string } | null {
+    const email = magicTokens.get(token);
+    if (!email) return null;
+    magicTokens.delete(token);
+    let account = byEmail(email);
+    if (!account) {
+      const link = `cap-${randHex(20)}`;
+      account = newAccount(`acct_${randHex(6)}`, link, email);
+      accounts.set(link, account);
+    }
+    return { account_id: account.id, link: account.link! };
   },
 };
 
@@ -381,10 +485,10 @@ export function mockTestConnect(body: {
   // Deterministic by input so each failure mode is demoable:
   //   password "wrong"          → auth fails
   //   host/login contains "nocaps" → server lacks IDLE/QRESYNC
-  const authenticated = body.password !== 'wrong';
-  const caps = !`${body.imap_host ?? ''}${body.login}`.includes('nocaps');
+  const authenticated = body.password !== "wrong";
+  const caps = !`${body.imap_host ?? ""}${body.login}`.includes("nocaps");
   const missing: string[] = [];
-  if (authenticated && !caps) missing.push('IDLE', 'QRESYNC');
+  if (authenticated && !caps) missing.push("IDLE", "QRESYNC");
   return {
     ok: authenticated && caps,
     reachable: true,
@@ -395,29 +499,35 @@ export function mockTestConnect(body: {
     missing,
     already_watched: false,
     error: !authenticated
-      ? 'authentication failed'
+      ? "authentication failed"
       : !caps
-        ? 'server does not advertise IDLE/QRESYNC'
+        ? "server does not advertise IDLE/QRESYNC"
         : null,
   };
 }
 
 /** POST /mailboxes — a plausible folder list for the onboarding picker. */
-export function mockListMailboxes(): { mailboxes: { name: string; role: string | null }[] } {
+export function mockListMailboxes(): {
+  mailboxes: { name: string; role: string | null }[];
+} {
   return {
     mailboxes: [
-      { name: 'INBOX', role: 'inbox' },
-      { name: 'Sent', role: 'sent' },
-      { name: 'Drafts', role: 'drafts' },
-      { name: 'Archive', role: 'archive' },
-      { name: 'Junk', role: 'junk' },
-      { name: 'Trash', role: 'trash' },
+      { name: "INBOX", role: "inbox" },
+      { name: "Sent", role: "sent" },
+      { name: "Drafts", role: "drafts" },
+      { name: "Archive", role: "archive" },
+      { name: "Junk", role: "junk" },
+      { name: "Trash", role: "trash" },
     ],
   };
 }
 
 /** POST /webhook/test — pretend the endpoint acked. */
-export function mockTestWebhook(): { ok: boolean; status: number | null; error: string | null } {
+export function mockTestWebhook(): {
+  ok: boolean;
+  status: number | null;
+  error: string | null;
+} {
   return { ok: true, status: 200, error: null };
 }
 
@@ -433,34 +543,43 @@ export function mockAuthenticate(body: {
   const key = mailboxKey(body.login);
 
   let account: MockAccount;
-  let action: AuthResult['action'];
+  let action: AuthResult["action"];
   let link: string;
 
   if (body.existingLink && accounts.has(body.existingLink)) {
     account = accounts.get(body.existingLink)!;
     link = body.existingLink;
-    action = 'joined';
+    action = "joined";
   } else {
-    const existing = [...accounts.values()].find((a) => a.memberships.some((m) => m.mailbox_key === key));
+    const existing = [...accounts.values()].find((a) =>
+      a.memberships.some((m) => m.mailbox_key === key),
+    );
     if (existing) {
       account = existing;
       link = `cap-${randHex(20)}`;
       account.link = link;
-      accounts.delete([...accounts.entries()].find(([, a]) => a === existing)?.[0] ?? '');
+      accounts.delete(
+        [...accounts.entries()].find(([, a]) => a === existing)?.[0] ?? "",
+      );
       accounts.set(link, account);
-      action = 'recovered';
+      action = "recovered";
     } else {
       link = `cap-${randHex(20)}`;
       account = newAccount(`acct_${randHex(6)}`, link);
       accounts.set(link, account);
-      action = 'created';
+      action = "created";
     }
   }
 
   if (!account.memberships.some((m) => m.mailbox_key === key)) {
-    account.memberships.push({ mailbox_key: key, login: body.login, imap_host: body.imap_host });
+    account.memberships.push({
+      mailbox_key: key,
+      login: body.login,
+      imap_host: body.imap_host,
+    });
   }
-  if (!account.trials.has(key)) account.trials.set(key, nowSecs() + TRIAL_SECS);
+  // First validated PIM account earns the free credit.
+  grantFreeCredit(account);
 
   return {
     account_id: account.id,

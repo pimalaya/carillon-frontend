@@ -1,7 +1,7 @@
-import type { QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from "@tanstack/react-query";
 
-import { queryKeys } from './keys';
-import type { MeData, Watch } from './schemas';
+import { queryKeys } from "./keys";
+import type { MeData, Watch } from "./schemas";
 
 // Shared cache mutators for the /me query (the account's watches + balance).
 // Mutations and the live stream both patch it in place. (PLAN §8)

@@ -1,13 +1,13 @@
-import { http, HttpResponse, delay } from 'msw';
+import { http, HttpResponse, delay } from "msw";
 
-import { apiUrl } from '@/lib/config';
+import { apiUrl } from "@/lib/config";
 import {
   mockAuthenticate,
   mockDb,
   mockListMailboxes,
   mockTestConnect,
   mockTestWebhook,
-} from './db';
+} from "./db";
 
 // MSW REST handlers over the in-memory mock DB, mirroring carillon-server's
 // routes and wire shapes (api.rs / openapi.yaml). The SSE /events stream is
@@ -16,28 +16,32 @@ import {
 const route = (path: string) => apiUrl(path);
 
 function linkOf(request: Request): string | null {
-  const auth = request.headers.get('Authorization');
-  return auth?.startsWith('Bearer ') ? auth.slice('Bearer '.length) : null;
+  const auth = request.headers.get("Authorization");
+  return auth?.startsWith("Bearer ") ? auth.slice("Bearer ".length) : null;
 }
 
 function unauthorized() {
   return HttpResponse.json(
-    { error: 'invalid or missing capability link' },
+    { error: "invalid or missing capability link" },
     { status: 401 },
   );
 }
 
 export const handlers = [
-  http.get(route('/health'), () => HttpResponse.text('ok')),
+  http.get(route("/health"), () => HttpResponse.text("ok")),
 
   // ── Onboarding / identity ──────────────────────────────────────────────────
-  http.post(route('/test'), async ({ request }) => {
-    const body = (await request.json()) as { login: string; password?: string; imap_host?: string };
+  http.post(route("/test"), async ({ request }) => {
+    const body = (await request.json()) as {
+      login: string;
+      password?: string;
+      imap_host?: string;
+    };
     await delay(700); // connect + auth + capability probe takes a beat
     return HttpResponse.json(mockTestConnect(body));
   }),
 
-  http.post(route('/auth'), async ({ request }) => {
+  http.post(route("/auth"), async ({ request }) => {
     const body = (await request.json()) as {
       login: string;
       password?: string;
@@ -46,118 +50,175 @@ export const handlers = [
     };
     await delay(600);
     const result = mockAuthenticate({ ...body, existingLink: linkOf(request) });
-    if (!result.watchable && body.password === 'wrong') {
-      return HttpResponse.json({ error: 'authentication failed' }, { status: 401 });
+    if (!result.watchable && body.password === "wrong") {
+      return HttpResponse.json(
+        { error: "authentication failed" },
+        { status: 401 },
+      );
     }
     return HttpResponse.json(result);
   }),
 
-  http.post(route('/mailboxes'), async () => {
+  http.post(route("/auth/magic/request"), async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as { email?: string };
+    await delay(400);
+    if (!body.email?.includes("@")) {
+      return HttpResponse.json(
+        { error: "a valid email is required" },
+        { status: 400 },
+      );
+    }
+    mockDb.magicRequest(body.email);
+    return HttpResponse.json({ status: "sent" });
+  }),
+
+  http.post(route("/auth/magic/verify"), async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as { token?: string };
+    await delay(300);
+    const result = body.token ? mockDb.magicVerify(body.token) : null;
+    if (!result) {
+      return HttpResponse.json(
+        { error: "invalid or expired sign-in link" },
+        { status: 401 },
+      );
+    }
+    return HttpResponse.json(result);
+  }),
+
+  http.post(route("/mailboxes"), async () => {
     await delay(500);
     return HttpResponse.json(mockListMailboxes());
   }),
 
-  http.post(route('/webhook/test'), async () => {
+  http.post(route("/webhook/test"), async () => {
     await delay(500);
     return HttpResponse.json(mockTestWebhook());
   }),
 
-  http.get(route('/me'), async ({ request }) => {
+  http.get(route("/me"), async ({ request }) => {
     const link = linkOf(request);
     if (!link) return unauthorized();
     await delay(250);
     return HttpResponse.json(mockDb.me(link));
   }),
 
-  http.post(route('/signout'), ({ request }) => {
+  http.post(route("/signout"), ({ request }) => {
     const link = linkOf(request);
     if (!link) return unauthorized();
-    return HttpResponse.json({ status: 'ok', revoked: mockDb.signout(link) });
+    return HttpResponse.json({ status: "ok", revoked: mockDb.signout(link) });
   }),
 
   // ── Watches ────────────────────────────────────────────────────────────────
-  http.get(route('/watches'), async () => {
+  http.get(route("/watches"), async () => {
     await delay(200);
     return HttpResponse.json(mockDb.allWatches());
   }),
 
-  http.post(route('/watches'), async ({ request }) => {
-    const body = (await request.json()) as Parameters<typeof mockDb.createWatch>[0];
+  http.post(route("/watches"), async ({ request }) => {
+    const body = (await request.json()) as Parameters<
+      typeof mockDb.createWatch
+    >[0];
     await delay(400);
-    return HttpResponse.json(mockDb.createWatch(body), { status: 201 });
+    const result = mockDb.createWatch(body);
+    if (result === "duplicate")
+      return HttpResponse.json(
+        { error: "a service already watches that folder" },
+        { status: 409 },
+      );
+    return HttpResponse.json(result, { status: 201 });
   }),
 
-  http.delete(route('/watches/:id'), ({ params }) => {
+  http.delete(route("/watches/:id"), ({ params }) => {
     const ok = mockDb.deleteWatch(String(params.id));
-    if (!ok) return HttpResponse.json({ error: 'watch not found' }, { status: 404 });
-    return HttpResponse.json({ status: 'ok' });
+    if (!ok)
+      return HttpResponse.json({ error: "watch not found" }, { status: 404 });
+    return HttpResponse.json({ status: "ok" });
   }),
 
-  http.post(route('/watches/:id/pause'), ({ params }) => {
+  http.post(route("/watches/:id/pause"), ({ params }) => {
     const ok = mockDb.setActive(String(params.id), false);
-    if (!ok) return HttpResponse.json({ error: 'watch not found' }, { status: 404 });
-    return HttpResponse.json({ status: 'ok', active: false });
+    if (!ok)
+      return HttpResponse.json({ error: "watch not found" }, { status: 404 });
+    return HttpResponse.json({ status: "ok", active: false });
   }),
 
-  http.post(route('/watches/:id/resume'), ({ params }) => {
+  http.post(route("/watches/:id/resume"), ({ params }) => {
     const ok = mockDb.setActive(String(params.id), true);
-    if (!ok) return HttpResponse.json({ error: 'watch not found' }, { status: 404 });
-    return HttpResponse.json({ status: 'ok', active: true });
+    if (!ok)
+      return HttpResponse.json({ error: "watch not found" }, { status: 404 });
+    return HttpResponse.json({ status: "ok", active: true });
   }),
 
-  http.post(route('/watches/:id/rotate-secret'), ({ params }) => {
+  http.post(route("/watches/:id/rotate-secret"), ({ params }) => {
     const result = mockDb.rotateSecret(String(params.id));
-    if (!result) return HttpResponse.json({ error: 'watch not found' }, { status: 404 });
+    if (!result)
+      return HttpResponse.json({ error: "watch not found" }, { status: 404 });
     return HttpResponse.json(result);
   }),
 
+  http.post(route("/watches/:id/activate"), async ({ params }) => {
+    await delay(300);
+    const result = mockDb.activate(String(params.id));
+    if (result === "gone")
+      return HttpResponse.json({ error: "watch not found" }, { status: 404 });
+    if (result === "no_credits")
+      return HttpResponse.json(
+        { error: "no credits — buy a pack first" },
+        { status: 402 },
+      );
+    return HttpResponse.json(result);
+  }),
+
+  http.post(route("/watches/:id/auto-renew"), async ({ params, request }) => {
+    const body = (await request.json().catch(() => ({}))) as {
+      enabled?: boolean;
+    };
+    const ok = mockDb.setAutoRenew(String(params.id), !!body.enabled);
+    if (!ok)
+      return HttpResponse.json({ error: "watch not found" }, { status: 404 });
+    return HttpResponse.json({
+      status: "ok",
+      id: String(params.id),
+      auto_renew: !!body.enabled,
+    });
+  }),
+
   // ── Deliveries ─────────────────────────────────────────────────────────────
-  http.get(route('/deliveries'), async ({ request }) => {
+  http.get(route("/deliveries"), async ({ request }) => {
     const url = new URL(request.url);
     await delay(250);
     return HttpResponse.json(
       mockDb.deliveries(
-        url.searchParams.get('account') ?? undefined,
-        Number(url.searchParams.get('limit') ?? 100),
+        url.searchParams.get("account") ?? undefined,
+        Number(url.searchParams.get("limit") ?? 100),
       ),
     );
   }),
 
   // ── Accounts (billing) ─────────────────────────────────────────────────────
-  http.get(route('/accounts'), () => HttpResponse.json(mockDb.accountsList())),
+  http.get(route("/accounts"), () => HttpResponse.json(mockDb.accountsList())),
 
-  http.get(route('/accounts/:id'), ({ params }) => {
+  http.get(route("/accounts/:id"), ({ params }) => {
     const view = mockDb.getAccount(String(params.id));
-    if (!view) return HttpResponse.json({ error: 'account not found' }, { status: 404 });
+    if (!view)
+      return HttpResponse.json({ error: "account not found" }, { status: 404 });
     return HttpResponse.json(view);
   }),
 
-  // ── Billing (subscription) ─────────────────────────────────────────────────
-  http.get(route('/billing/plans'), () => HttpResponse.json(mockDb.plans())),
-
-  http.post(route('/billing/checkout'), async ({ request }) => {
+  // ── Billing (credit packs) ─────────────────────────────────────────────────
+  http.post(route("/billing/checkout"), async ({ request }) => {
     const link = linkOf(request);
     if (!link) return unauthorized();
-    const { plan, mailbox_key } = (await request.json()) as { plan: string; mailbox_key: string };
+    const body = (await request.json().catch(() => ({}))) as { packs?: number };
     await delay(400);
-    const session = mockDb.checkout(link, plan, mailbox_key);
-    if (!session) return HttpResponse.json({ error: 'unknown plan' }, { status: 400 });
-    return HttpResponse.json(session);
+    const packs = Math.max(1, Math.floor(body.packs ?? 1));
+    return HttpResponse.json(mockDb.checkout(link, packs));
   }),
 
-  http.post(route('/billing/portal'), async ({ request }) => {
-    const link = linkOf(request);
-    if (!link) return unauthorized();
-    const { mailbox_key } = (await request.json()) as { mailbox_key: string };
-    await delay(300);
-    const url = mockDb.portal(link, mailbox_key);
-    if (!url) {
-      return HttpResponse.json({ error: 'no subscription for this mailbox' }, { status: 400 });
-    }
-    return HttpResponse.json({ portal_url: url });
-  }),
-
-  http.post(route('/billing/webhook'), () =>
-    HttpResponse.json({ status: 'ignored', reason: 'mock settles at checkout' }),
+  http.post(route("/billing/webhook"), () =>
+    HttpResponse.json({
+      status: "ignored",
+      reason: "mock settles at checkout",
+    }),
   ),
 ];

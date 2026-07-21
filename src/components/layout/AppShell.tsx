@@ -1,11 +1,11 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet } from "react-router-dom";
 
-import { Sidebar } from './Sidebar';
-import { Brand } from './Brand';
-import { AccountSwitcher } from './AccountSwitcher';
-import { useStreamStatus } from './StreamProvider';
-import { LiveIndicator } from '@/components/LiveIndicator';
-import { connectionLabel } from '@/lib/config';
+import { Sidebar } from "./Sidebar";
+import { Brand } from "./Brand";
+import { AccountSwitcher } from "./AccountSwitcher";
+import { useStreamStatus } from "./StreamProvider";
+import { LiveIndicator } from "@/components/LiveIndicator";
+import { connectionLabel } from "@/lib/config";
 
 /**
  * App frame: sidebar + top bar + routed content. Reads the app-wide stream

@@ -1,7 +1,7 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate } from "react-router-dom";
 
-import { AppShell } from '@/components/layout/AppShell';
-import { useAuth } from '@/lib/auth';
+import { AppShell } from "@/components/layout/AppShell";
+import { useAuth } from "@/lib/auth";
 
 /**
  * Gate for the authenticated app shell. No stored capability link → send the

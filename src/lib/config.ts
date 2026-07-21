@@ -1,7 +1,7 @@
 // Single source of truth for build-time configuration. Everything reads from
 // here — nothing else touches import.meta.env. (PLAN §3)
 
-const rawBase = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+const rawBase = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 const rawMocks = import.meta.env.VITE_ENABLE_MOCKS;
 
 // Mock mode resolution:
@@ -10,7 +10,7 @@ const rawMocks = import.meta.env.VITE_ENABLE_MOCKS;
 //   3. else dev defaults on (friendly first run), prod off.
 // So to drive a real carillon-server, just set VITE_API_BASE_URL.
 function resolveMocks(): boolean {
-  if (rawMocks !== undefined) return rawMocks !== 'false';
+  if (rawMocks !== undefined) return rawMocks !== "false";
   if (rawBase) return false;
   return import.meta.env.DEV;
 }
@@ -30,12 +30,12 @@ export const config = {
 
 /** Join the API base with a path, keeping same-origin URLs relative. */
 export function apiUrl(path: string): string {
-  const suffix = path.startsWith('/') ? path : `/${path}`;
+  const suffix = path.startsWith("/") ? path : `/${path}`;
   return `${config.apiBaseUrl}${suffix}`;
 }
 
 /** Human label of what we're connected to, for the header indicator. */
 export function connectionLabel(): string {
-  if (config.mocksEnabled) return 'mock data';
-  return config.apiBaseUrl || 'same-origin';
+  if (config.mocksEnabled) return "mock data";
+  return config.apiBaseUrl || "same-origin";
 }
