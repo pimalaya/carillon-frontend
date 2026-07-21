@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useMe } from "@/api/me";
-import { useActivateWatch } from "@/api/watches";
+import { useActivateWatch, useSetAutoRenew } from "@/api/watches";
 import { formatDate } from "@/lib/format";
 import type { StageProps } from "../types";
 
@@ -27,6 +27,7 @@ export function CommitStage({ state }: StageProps) {
   const navigate = useNavigate();
   const { data: me } = useMe();
   const activate = useActivateWatch();
+  const setRenew = useSetAutoRenew();
   const [justActivated, setJustActivated] = useState<{
     until: number;
     credits: number;
@@ -40,16 +41,23 @@ export function CommitStage({ state }: StageProps) {
 
   function activateNow() {
     if (!state.watchId) return;
-    activate.mutate(state.watchId, {
-      onSuccess: (r) =>
-        setJustActivated({ until: r.watching_until, credits: r.credits }),
-      onError: (e) =>
-        toast.error(
-          e.message.toLowerCase().includes("credit")
-            ? "Out of credits — buy a pack first"
-            : "Could not activate the service",
-        ),
-    });
+    activate.mutate(
+      { id: state.watchId, credits: 1 },
+      {
+        onSuccess: (r) => {
+          setJustActivated({ until: r.watching_until, credits: r.credits });
+          // Activating a service turns on auto-renew (the lifecycle switch).
+          if (state.watchId)
+            setRenew.mutate({ id: state.watchId, enabled: true });
+        },
+        onError: (e) =>
+          toast.error(
+            e.message.toLowerCase().includes("credit")
+              ? "Out of credits — buy a pack first"
+              : "Could not activate the service",
+          ),
+      },
+    );
   }
 
   return (

@@ -121,8 +121,7 @@ export function CreditsCard() {
             ) : (
               <ShoppingCart />
             )}
-            Buy {packs * PACK_SIZE}{" "}
-            credits
+            Buy {packs * PACK_SIZE} credits
           </Button>
         </div>
       </CardContent>

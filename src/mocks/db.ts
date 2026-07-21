@@ -377,24 +377,27 @@ export const mockDb = {
     return { status: "ok", secret, prev_expires_at: nowSecs() + DAY };
   },
 
-  /** POST /watches/{id}/activate — spend one credit, stack onto remaining time. */
+  /** POST /watches/{id}/activate — spend `credits` credits (months, all-or-
+   *  nothing), stacking onto remaining time. */
   activate(
     id: string,
+    credits = 1,
   ):
     | { status: "ok"; id: string; watching_until: number; credits: number }
     | "gone"
     | "no_credits" {
+    const n = Math.max(1, Math.floor(credits));
     const watch = watches.find((w) => w.id === id);
     if (!watch) return "gone";
     const account = byId(watch.account_id);
-    if (!account || account.credits < 1) return "no_credits";
-    account.credits -= 1;
+    if (!account || account.credits < n) return "no_credits";
+    account.credits -= n;
     const now = nowSecs();
     const base =
       watch.watching_until && watch.watching_until > now
         ? watch.watching_until
         : now;
-    watch.watching_until = base + MONTH;
+    watch.watching_until = base + n * MONTH;
     return {
       status: "ok",
       id,
@@ -511,7 +514,6 @@ export function mockTestConnect(body: {
     qresync: authenticated && caps,
     condstore: authenticated && caps,
     missing,
-    already_watched: false,
     error: !authenticated
       ? "authentication failed"
       : !caps

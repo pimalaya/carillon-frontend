@@ -66,7 +66,6 @@ function verdictFromOauth(r: OauthResult): TestVerdict {
     qresync: r.qresync ?? false,
     condstore: r.qresync ?? false,
     missing,
-    already_watched: r.already_watched ?? false,
     error: null,
   };
 }
@@ -209,7 +208,6 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
           qresync: false,
           condstore: false,
           missing: [],
-          already_watched: false,
           error: message,
         },
       });

@@ -13,7 +13,7 @@ export function DashboardPage() {
     <div>
       <PageHeader
         title="Dashboard"
-        description="Your watches and credits at a glance."
+        description="Your services and credits at a glance."
         action={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => navigate("/services/new")}>
@@ -30,7 +30,7 @@ export function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-8 lg:col-span-2">
           <section>
-            <h2 className="mb-3 text-sm font-semibold">Watches</h2>
+            <h2 className="mb-3 text-sm font-semibold">Services</h2>
             <WatchesList />
           </section>
           <section>

@@ -156,9 +156,12 @@ export const handlers = [
     return HttpResponse.json(result);
   }),
 
-  http.post(route("/watches/:id/activate"), async ({ params }) => {
+  http.post(route("/watches/:id/activate"), async ({ params, request }) => {
+    const body = (await request.json().catch(() => ({}))) as {
+      credits?: number;
+    };
     await delay(300);
-    const result = mockDb.activate(String(params.id));
+    const result = mockDb.activate(String(params.id), body.credits ?? 1);
     if (result === "gone")
       return HttpResponse.json({ error: "watch not found" }, { status: 404 });
     if (result === "no_credits")

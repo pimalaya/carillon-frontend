@@ -85,18 +85,20 @@ export function useDeleteWatch() {
 }
 
 /**
- * POST /watches/{id}/activate — spend one credit to give a service a month of
- * watching (§ BILLING_MODEL); stacks onto any time still remaining. `402` when
- * the pool is empty. Invalidates /me so the new balance + activation show.
+ * POST /watches/{id}/activate — spend `credits` credits (months) to give a
+ * service that much watching (§ BILLING_MODEL); stacks onto any time still
+ * remaining. All-or-nothing; `402` when the pool can't cover it. Invalidates
+ * /me so the new balance + activation show.
  */
 export function useActivateWatch() {
   const { activeLink } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<unknown>(`/watches/${id}/activate`, { method: "POST" }).then(
-        (d) => parseOr(activateResultSchema, d),
-      ),
+    mutationFn: ({ id, credits }: { id: string; credits: number }) =>
+      apiFetch<unknown>(`/watches/${id}/activate`, {
+        method: "POST",
+        body: { credits },
+      }).then((d) => parseOr(activateResultSchema, d)),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: queryKeys.me(activeLink) }),
   });

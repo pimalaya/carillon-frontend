@@ -63,7 +63,10 @@ export function AccountSwitcher() {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => navigate("/onboarding")}>
+        {/* Add *another Carillon account* (a separate magic-link identity, with
+            its own credit pool) — not a PIM account. Purely local to this
+            browser; elsewhere you sign in again via a magic link. */}
+        <DropdownMenuItem onSelect={() => navigate("/welcome")}>
           <Plus />
           Add account
         </DropdownMenuItem>

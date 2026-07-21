@@ -198,8 +198,6 @@ export interface OauthResult {
   missing?: string[];
   /** Whether the server supports QRESYNC; false ⇒ new-messages-only watching. */
   qresync?: boolean;
-  /** Advisory: this mailbox already has a watch (create is a hard 409). */
-  already_watched?: boolean;
   /** Welcome-credit outcome for the joined PIM account. */
   free_credit?: "granted" | "already_credited" | "already_claimed";
   login?: string;

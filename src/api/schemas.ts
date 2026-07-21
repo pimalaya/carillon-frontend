@@ -136,8 +136,6 @@ export const testVerdictSchema = z.object({
   qresync: z.boolean(),
   condstore: z.boolean(),
   missing: z.array(z.string()).default([]),
-  /** Advisory: this mailbox already has a watch (create is a hard 409). */
-  already_watched: z.boolean().default(false),
   error: z.string().nullable().optional(),
 });
 export type TestVerdict = z.infer<typeof testVerdictSchema>;

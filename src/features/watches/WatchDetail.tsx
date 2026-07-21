@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Pause, Play, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -18,10 +19,16 @@ import {
 import { StatusBadge } from "@/components/StatusBadge";
 import { CopyButton } from "@/components/CopyButton";
 import { EmptyState } from "@/components/EmptyState";
-import { WatchActionsMenu } from "./WatchActionsMenu";
+import { ActivateServiceButton } from "@/features/billing/ActivateServiceButton";
+import { DeleteServiceButton } from "./DeleteServiceButton";
 import { DeliveriesLog } from "@/features/deliveries/DeliveriesLog";
-import { useWatch } from "@/api/me";
-import { usePauseWatch, useResumeWatch, useRotateSecret } from "@/api/watches";
+import { useMe, useWatch } from "@/api/me";
+import {
+  usePauseWatch,
+  useResumeWatch,
+  useRotateSecret,
+  useSetAutoRenew,
+} from "@/api/watches";
 import { formatRelativeTime } from "@/lib/format";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -36,8 +43,10 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 export function WatchDetail({ id }: { id: string }) {
   const navigate = useNavigate();
   const { data: watch, isLoading, isError } = useWatch(id);
+  const { data: me } = useMe();
   const pause = usePauseWatch();
   const resume = useResumeWatch();
+  const setRenew = useSetAutoRenew();
   const rotate = useRotateSecret();
   // The server only returns a secret at rotation; reveal it once here.
   const [revealed, setRevealed] = useState<string | null>(null);
@@ -55,7 +64,7 @@ export function WatchDetail({ id }: { id: string }) {
     return (
       <EmptyState
         icon={<AlertTriangle />}
-        title="Watch not found"
+        title="Service not found"
         description="It may have been deleted."
         action={
           <Button onClick={() => navigate("/")}>Back to dashboard</Button>
@@ -64,7 +73,12 @@ export function WatchDetail({ id }: { id: string }) {
     );
   }
 
-  const paused = !watch.active;
+  const metered = me?.metered ?? true;
+  const svc = me?.balance.mailboxes.find((m) => m.watch_id === id);
+  const watching = svc?.watching ?? false;
+  const autoRenew = svc?.auto_renew ?? false;
+  // Pause/resume matters while the service can run: paid (metered) or self-host.
+  const runnable = !metered || watching;
 
   function doRotate() {
     rotate.mutate(id, {
@@ -99,25 +113,61 @@ export function WatchDetail({ id }: { id: string }) {
         }
         description={`Watching ${watch.mailbox}`}
         action={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                paused
-                  ? resume.mutate(watch.id, {
-                      onSuccess: () => toast.success("Resumed"),
-                    })
-                  : pause.mutate(watch.id, {
-                      onSuccess: () => toast.success("Paused"),
-                    })
-              }
-            >
-              {paused ? <Play /> : <Pause />}
-              {paused ? "Resume" : "Pause"}
-            </Button>
-            <WatchActionsMenu watch={watch} onDeleted={() => navigate("/")} />
-          </>
+          <div className="flex items-center gap-3">
+            {runnable && (
+              <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                active
+                <Switch
+                  aria-label="Active (deliver events)"
+                  checked={watch.active}
+                  disabled={pause.isPending || resume.isPending}
+                  onCheckedChange={(on) =>
+                    on
+                      ? resume.mutate(watch.id, {
+                          onSuccess: () =>
+                            toast.success("Resumed — delivering events"),
+                        })
+                      : pause.mutate(watch.id, {
+                          onSuccess: () =>
+                            toast.success(
+                              "Paused — no events (paid time keeps running)",
+                            ),
+                        })
+                  }
+                />
+              </label>
+            )}
+            {metered && watching && (
+              <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                auto-renew
+                <Switch
+                  aria-label="Auto-renew"
+                  checked={autoRenew}
+                  disabled={setRenew.isPending}
+                  onCheckedChange={(enabled) =>
+                    setRenew.mutate(
+                      { id: watch.id, enabled },
+                      {
+                        onSuccess: () =>
+                          toast.success(
+                            enabled
+                              ? "Auto-renew on"
+                              : "Auto-renew off — stops when the paid month ends",
+                          ),
+                      },
+                    )
+                  }
+                />
+              </label>
+            )}
+            {metered && (
+              <ActivateServiceButton watchId={watch.id} watching={watching} />
+            )}
+            <DeleteServiceButton
+              watch={watch}
+              onDeleted={() => navigate("/")}
+            />
+          </div>
         }
       />
 

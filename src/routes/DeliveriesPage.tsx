@@ -10,7 +10,7 @@ export function DeliveriesPage() {
     <div>
       <PageHeader
         title="Deliveries"
-        description="Every webhook Carillon has fired across your watches — UID only, never content."
+        description="Every webhook Carillon has fired across your services — UID only, never content."
         action={
           <Tabs
             value={tab}

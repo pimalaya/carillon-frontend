@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Loader2, PlayCircle, Radio } from "lucide-react";
-import { toast } from "sonner";
+import { CheckCircle2, Radio } from "lucide-react";
 
 import {
   Card,
@@ -10,33 +9,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ActivateServiceButton } from "./ActivateServiceButton";
 import { useMe } from "@/api/me";
-import { useActivateWatch, useSetAutoRenew } from "@/api/watches";
+import { useSetAutoRenew } from "@/api/watches";
 import { formatDate } from "@/lib/format";
 import type { AccountMailbox } from "@/api/schemas";
 
 /** One service row: its watch state + Activate / auto-renew controls. */
 function ServiceRow({ m }: { m: AccountMailbox }) {
-  const activate = useActivateWatch();
   const autoRenew = useSetAutoRenew();
   const watchId = m.watch_id;
-
-  function onActivate() {
-    if (!watchId) return;
-    activate.mutate(watchId, {
-      onSuccess: (r) =>
-        toast.success(
-          `Watching until ${formatDate(r.watching_until)} · ${r.credits} credits left`,
-        ),
-      onError: (e) =>
-        toast.error(
-          e.message.toLowerCase().includes("no credits")
-            ? "Out of credits — buy a pack first"
-            : "Could not activate",
-        ),
-    });
-  }
 
   return (
     <div className="flex items-center justify-between gap-3 py-2.5">
@@ -68,35 +52,22 @@ function ServiceRow({ m }: { m: AccountMailbox }) {
 
       {watchId && (
         <div className="flex shrink-0 items-center gap-3">
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              className="size-3.5 accent-primary"
-              checked={m.auto_renew}
-              disabled={autoRenew.isPending}
-              onChange={(e) =>
-                autoRenew.mutate({ id: watchId, enabled: e.target.checked })
-              }
-            />
-            auto-renew
-          </label>
-          <Button
-            size="sm"
-            variant={m.watching ? "outline" : "default"}
-            disabled={activate.isPending}
-            onClick={onActivate}
-          >
-            {activate.isPending ? (
-              <Loader2 className="animate-spin" />
-            ) : m.watching ? (
-              "+1 month"
-            ) : (
-              <>
-                <PlayCircle />
-                Activate
-              </>
-            )}
-          </Button>
+          {/* Auto-renew only means something while watching — nothing to renew
+              otherwise. Activating a stopped service turns it on. */}
+          {m.watching && (
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              auto-renew
+              <Switch
+                aria-label="Auto-renew"
+                checked={m.auto_renew}
+                disabled={autoRenew.isPending}
+                onCheckedChange={(enabled) =>
+                  autoRenew.mutate({ id: watchId, enabled })
+                }
+              />
+            </label>
+          )}
+          <ActivateServiceButton watchId={watchId} watching={m.watching} />
         </div>
       )}
     </div>

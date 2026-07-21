@@ -4,6 +4,42 @@ A running record of what's built, what's real, and what's left. Pairs with the
 plan in [`PLAN.md`](PLAN.md) (milestones **U0–U6**) and the server design in
 [`../../carillon-server/docs/`](../../carillon-server/docs).
 
+## Current state — 2026-07-22 (supersedes the dated entries below)
+
+Drives a **real carillon-server** (Resend magic-link email + Stripe pack
+checkout both verified live). `tsc` + `vite build` + 12 unit tests green.
+Billing model = **prepaid credit pool + magic-link accounts** (the subscription
+entry below was reverted; ignore it).
+
+- **Two-level onboarding split.** *Add account* (`/onboarding`) = Identify +
+  Authenticate only — stores the PIM-account credential + mints the capability
+  link, then stops. *Add service* (`/services/new`) = folder pick + notify +
+  verify, reusing the stored credential (empty-password `POST /mailboxes` /
+  `/watches`). Onboarding requires a Carillon account first (magic-link only).
+- **Accounts.** Top-right switcher = **Carillon accounts** (magic-link
+  identities, localStorage, keyed by server `accountId`; "Add account" → magic
+  link). PIM accounts live under one Carillon account; the dashboard has a
+  per-PIM-account filter. Credit pool is per-Carillon-account.
+- **Service lifecycle (metered).** Per row: **Active** switch (pause/resume
+  webhook deliveries — server honors `active`) + **Auto-renew** switch, an
+  **Activate/Extend** button opening a confirm-and-spend dialog (quantity picker
+  → `POST /watches/{id}/activate {credits}`, all-or-nothing; empty pool → toast,
+  no dialog), and an inline **trash** delete (the `⋯` menu is gone — row-click =
+  detail). Activating a stopped service turns auto-renew on. Extend icon =
+  Hourglass. Self-host (unmetered) keeps free pause/resume, no credits UI.
+- **Free credit.** Client toasts the `POST /auth` `free_credit` outcome
+  (granted 🎁 / already-claimed-by-another-account). Dedup is per-account.
+- **Billing page** mirrors the dashboard grid (services wide left, credit card
+  right). `components/ui/switch.tsx` is hand-written.
+- **Gotcha fixed:** fire-once on-mount token exchanges (magic `/verify`,
+  `/mailboxes`) must be a plain awaited `apiFetch` / `useQuery`, **not** a
+  `useMutation` in an effect — the latter desyncs under React StrictMode
+  (eternal spinner / empty list).
+
+Remaining: interactive OAuth e2e (real browser consent), production deploy
+(host + CORS/public_url + live keys + Resend domain verification), and deferred
+features (API keys, auto-recharge, CardDAV service type). `PLAN.md` is stale.
+
 ## Landed — 2026-07-21 · subscription billing (credits removed)
 
 The watch-time credits model was replaced with a **single subscription** (server
