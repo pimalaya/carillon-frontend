@@ -7,15 +7,16 @@ import { parseOr } from './parse';
 import { meSchema, type MeData, type Watch } from './schemas';
 
 // GET /me is the scoped source of truth for the signed-in account: its members,
-// watches and balance. The dashboard, watches list and billing all derive from
-// it, so a single request (and a single cache entry) drives the app. (api.rs)
+// watches and subscription. The dashboard, watches list and billing all derive
+// from it, so a single request (and a single cache entry) drives the app. (api.rs)
 
 export function useMe() {
   const { activeLink } = useAuth();
   return useQuery({
     queryKey: queryKeys.me(activeLink),
     enabled: !!activeLink,
-    // Balance drains continuously; keep it reasonably fresh.
+    // Subscription state changes out of band (checkout redirect, cancel);
+    // keep it reasonably fresh.
     refetchInterval: 30_000,
     queryFn: ({ signal }) =>
       apiFetch<unknown>('/me', { signal }).then((d) => parseOr(meSchema, d) as MeData),
@@ -41,7 +42,7 @@ export function useWatch(id: string) {
   };
 }
 
-/** The account's two-counter balance, derived from /me. */
+/** The account's subscription/trial view, derived from /me. */
 export function useBalance() {
   const me = useMe();
   return {
@@ -51,7 +52,7 @@ export function useBalance() {
   };
 }
 
-/** The billing account id (needed for /accounts/{id}/... calls). */
+/** The billing account id. */
 export function useAccountId(): string | undefined {
   return useMe().data?.account_id;
 }

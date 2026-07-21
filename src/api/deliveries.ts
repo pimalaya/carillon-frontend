@@ -41,8 +41,8 @@ function prepend(qc: ReturnType<typeof useQueryClient>, key: readonly unknown[],
 /**
  * Wire the live SSE stream into the cache: prepend delivery events into the
  * relevant lists, reflect `status` events on the watch's live state, and toast
- * metering `notice`s (refetching the balance). Returns the connection status
- * for the live/stale indicator. (PLAN §8)
+ * entitlement `notice`s (refetching the subscription). Returns the connection
+ * status for the live/stale indicator. (PLAN §8)
  */
 export function useLiveDeliveries(enabled = true): ReturnType<typeof useEventStream> {
   const { activeLink } = useAuth();
@@ -70,15 +70,12 @@ export function useLiveDeliveries(enabled = true): ReturnType<typeof useEventStr
         liveDetail: event.detail ?? null,
       }));
     } else {
-      // Metering notice — surface it and refresh the balance.
+      // Entitlement notice — surface it and refresh the subscription state.
       const label =
-        event.kind === 'low_balance'
-          ? 'Low balance'
-          : event.kind === 'credit_exhausted'
-            ? 'Credit exhausted — watch paused'
-            : 'Auto-refill topped up your pool';
-      if (event.kind === 'auto_refilled') toast.success(label);
-      else toast.warning(label, { description: event.detail ?? undefined });
+        event.kind === 'trial_ending'
+          ? 'Free trial ending soon'
+          : 'Watch paused — subscribe to resume';
+      toast.warning(label, { description: event.detail ?? undefined });
       qc.invalidateQueries({ queryKey: queryKeys.me(activeLink) });
     }
   });

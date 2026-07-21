@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 // Typed API boundary — mirrors carillon-server's OpenAPI contract
 // (carillon-server/docs/openapi.yaml) field-for-field. Wire fields are
-// snake_case; timestamps are unix seconds; watch-time is seconds (float).
-// Kept snake_case on purpose so there's no lossy transform between the wire
-// and the UI — what the server sends is what we render.
+// snake_case; timestamps are unix seconds. Kept snake_case on purpose so
+// there's no lossy transform between the wire and the UI — what the server
+// sends is what we render.
 //
 // Invariant: nothing here carries message content. Events are {account, event,
 // uid} only — no sender, subject, or body. (DECISIONS §1, §4)
@@ -43,14 +43,16 @@ export type Watch = WatchView & {
 /**
  * Body of POST /watches. The client supplies both the watch `id` and the
  * `hmac_secret` (so it can show the secret to the user once). `account_id`
- * joins the watch to a shared billing pool; omit for a per-watch account.
+ * joins the watch to a shared billing account; omit for a per-watch account.
  */
 export interface CreateWatchRequest {
   id: string;
   imap_host: string;
   imap_port: number;
   login: string;
-  password: string;
+  /** Omitted for an OAuth watch — the server uses the mailbox's stored OAuth
+   *  credential (proved via /oauth/callback) instead. */
+  password?: string;
   mailbox: string;
   notify_url: string;
   hmac_secret: string;
@@ -71,6 +73,41 @@ export const rotateResultSchema = z.object({
   prev_expires_at: z.number(),
 });
 export type RotateResult = z.infer<typeof rotateResultSchema>;
+
+// ── Discovery (email/server → IMAP config, D§2) ────────────────────────────────
+
+/**
+ * A discovered auth method. `kind` discriminates; OAuth variants carry the
+ * endpoints where known. Surfaced now; OAuth login is wired later. (AuthMethod)
+ */
+export const authMethodSchema = z.object({
+  kind: z.enum(['password', 'bearer', 'oauth', 'oauth_device', 'oauth_issuer']),
+  authorization_endpoint: z.string().optional(),
+  token_endpoint: z.string().optional(),
+  device_authorization_endpoint: z.string().optional(),
+  scope: z.string().nullable().optional(),
+  issuer: z.string().optional(),
+});
+export type AuthMethod = z.infer<typeof authMethodSchema>;
+
+/**
+ * One onboarding choice — a server endpoint + a single auth method, grouped
+ * across discovery mechanisms (the mechanism is not exposed). A hint the wizard
+ * confirms. (ImapChoice)
+ */
+export const imapChoiceSchema = z.object({
+  host: z.string(),
+  port: z.number(),
+  security: z.enum(['tls', 'starttls', 'plain']),
+  auth: authMethodSchema,
+});
+export type ImapChoice = z.infer<typeof imapChoiceSchema>;
+
+export const discoverResponseSchema = z.object({
+  input: z.string(),
+  choices: z.array(imapChoiceSchema).default([]),
+});
+export type DiscoverResponse = z.infer<typeof discoverResponseSchema>;
 
 // ── Test / onboarding ─────────────────────────────────────────────────────────
 
@@ -94,9 +131,35 @@ export const testVerdictSchema = z.object({
   qresync: z.boolean(),
   condstore: z.boolean(),
   missing: z.array(z.string()).default([]),
+  /** Advisory: this mailbox already has a watch (create is a hard 409). */
+  already_watched: z.boolean().default(false),
   error: z.string().nullable().optional(),
 });
 export type TestVerdict = z.infer<typeof testVerdictSchema>;
+
+// ── Mailboxes (folder picker, POST /mailboxes) ─────────────────────────────────
+
+/** One selectable mailbox with its special-use role, if the server flags one. */
+export const mailboxEntrySchema = z.object({
+  name: z.string(),
+  role: z.string().nullable().optional(),
+});
+export type MailboxEntry = z.infer<typeof mailboxEntrySchema>;
+
+export const mailboxesResponseSchema = z.object({
+  mailboxes: z.array(mailboxEntrySchema).default([]),
+});
+export type MailboxesResponse = z.infer<typeof mailboxesResponseSchema>;
+
+// ── Webhook test (POST /webhook/test) ──────────────────────────────────────────
+
+/** Result of a one-shot test POST: did the endpoint ack, with which status. */
+export const webhookTestResultSchema = z.object({
+  ok: z.boolean(),
+  status: z.number().nullable().optional(),
+  error: z.string().nullable().optional(),
+});
+export type WebhookTestResult = z.infer<typeof webhookTestResultSchema>;
 
 // ── Identity (login-less accounts, D§5) ───────────────────────────────────────
 
@@ -123,30 +186,39 @@ export const authResultSchema = z.object({
 });
 export type AuthResult = z.infer<typeof authResultSchema>;
 
-// ── Accounts & balance (two counters, D§3) ────────────────────────────────────
+// ── Accounts & per-mailbox subscription ───────────────────────────────────────
 
-/** A member mailbox's non-refillable trial, within an account view. */
+/** A member mailbox's own subscription + free-trial state, within an account
+ *  view. Subscriptions are per-mailbox. */
 export const accountMailboxSchema = z.object({
   /** Null for a proven mailbox that has no watch yet. */
   watch_id: z.string().nullable(),
   mailbox_key: z.string(),
-  trial_secs: z.number(),
+  /** Whether this mailbox's one-time free trial is still open. */
+  trial_active: z.boolean(),
+  /** Unix seconds the free trial ends, or null. */
+  trial_expires: z.number().nullable().optional(),
+  /** Whether this mailbox's own subscription is active (incl. dunning grace). */
+  subscribed: z.boolean(),
+  /** Coarse status: `active`/`trialing`/`past_due`/`canceled` from Stripe,
+   *  `trial` when only the free trial is open, else `none`. */
+  status: z.string(),
+  /** Plan id this mailbox is subscribed on (`month`/`year`), if any. */
+  plan: z.string().nullable().optional(),
+  /** Unix seconds this mailbox's paid period ends, if subscribed. */
+  current_period_end: z.number().nullable().optional(),
+  /** Whether a billing-portal session can be opened (a Stripe customer exists). */
+  can_manage: z.boolean().default(false),
 });
 export type AccountMailbox = z.infer<typeof accountMailboxSchema>;
 
-/** Public view of a billing account: the two counters. (AccountView) */
+/** Public view of a billing account: each mailbox's own subscription +
+ *  free-trial state (subscriptions are per-mailbox). (AccountView) */
 export const accountViewSchema = z.object({
   id: z.string(),
-  /** Account-shared refillable pool, in seconds. The only thing money touches. */
-  paid_secs: z.number(),
-  /** Unix seconds the pool expires (~12 months), or null. */
-  paid_expires: z.number().nullable().optional(),
-  pool_expired: z.boolean(),
-  auto_refill: z.boolean(),
-  auto_refill_threshold: z.number(),
-  auto_refill_amount: z.number(),
+  /** Whether any of the account's mailboxes may currently watch. */
+  entitled: z.boolean(),
   mailboxes: z.array(accountMailboxSchema).default([]),
-  total_available_secs: z.number(),
 });
 export type AccountView = z.infer<typeof accountViewSchema>;
 
@@ -173,17 +245,6 @@ export type Me = z.infer<typeof meSchema>;
  * the UI reads.
  */
 export type MeData = Omit<Me, 'watches'> & { watches: Watch[] };
-
-export interface AutoRefillRequest {
-  enabled: boolean;
-  threshold_secs: number;
-  amount_secs: number;
-}
-
-export interface CreditRequest {
-  secs: number;
-  ttl_secs?: number;
-}
 
 // ── Deliveries ────────────────────────────────────────────────────────────────
 
@@ -212,40 +273,42 @@ export const deliverySchema = z.object({
 });
 export type Delivery = z.infer<typeof deliverySchema>;
 
-// ── Billing ───────────────────────────────────────────────────────────────────
+// ── Billing (subscription) ─────────────────────────────────────────────────────
 
-/** A credit pack: watch-seconds only. Price lives in the payment provider. */
-export const packSchema = z.object({
+/** A subscription plan (`month`/`year`); the price is the provider's, shown on
+ *  its hosted checkout page. `cadence_secs` is the nominal billing period. */
+export const planSchema = z.object({
   id: z.string(),
-  secs: z.number(),
+  cadence_secs: z.number(),
 });
-export type Pack = z.infer<typeof packSchema>;
+export type Plan = z.infer<typeof planSchema>;
 
-export const packsResponseSchema = z.object({
+export const plansResponseSchema = z.object({
   provider: z.string(),
-  packs: z.array(packSchema).default([]),
+  plans: z.array(planSchema).default([]),
 });
-export type PacksResponse = z.infer<typeof packsResponseSchema>;
+export type PlansResponse = z.infer<typeof plansResponseSchema>;
 
 export const checkoutResponseSchema = z.object({
   provider: z.string(),
   session_id: z.string(),
   checkout_url: z.string(),
-  pack: z.string(),
-  secs: z.number(),
+  plan: z.string(),
+  mailbox_key: z.string(),
 });
 export type CheckoutResponse = z.infer<typeof checkoutResponseSchema>;
+
+export const portalResponseSchema = z.object({
+  portal_url: z.string(),
+});
+export type PortalResponse = z.infer<typeof portalResponseSchema>;
 
 // ── SSE stream (named events: `delivery`, `status`, `notice`) ──────────────────
 //
 // Each event's data JSON carries a `type` tag matching its event name.
 // Content-free, like everything else. (live.rs LiveEvent)
 
-export const noticeKindSchema = z.enum([
-  'low_balance',
-  'credit_exhausted',
-  'auto_refilled',
-]);
+export const noticeKindSchema = z.enum(['trial_ending', 'watch_paused']);
 export type NoticeKind = z.infer<typeof noticeKindSchema>;
 
 export const streamEventSchema = z.discriminatedUnion('type', [

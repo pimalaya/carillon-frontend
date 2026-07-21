@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, FlaskConical, KeyRound, LogOut, Mail, ShieldAlert } from 'lucide-react';
+import { BookOpen, KeyRound, LogOut, Mail, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,23 +12,18 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CopyButton } from '@/components/CopyButton';
 import { useMe } from '@/api/me';
 import { useSignout } from '@/api/onboarding';
-import { useAddCredit } from '@/api/account';
 import { useAuth } from '@/lib/auth';
-import { formatDuration } from '@/lib/format';
 
 function maskLink(link: string): string {
   if (link.length <= 12) return '••••••';
   return `${link.slice(0, 6)}…${link.slice(-4)}`;
 }
 
-const TEST_CREDIT = 86_400; // one day
-
 export function SettingsPanel() {
   const navigate = useNavigate();
   const { active, renameAccount, removeAccount, clearAll } = useAuth();
   const { data: me } = useMe();
   const signout = useSignout();
-  const addCredit = useAddCredit();
   const [label, setLabel] = useState(active?.label ?? '');
 
   if (!active) return null;
@@ -127,35 +122,6 @@ export function SettingsPanel() {
               re-mint the link — no email involved.
             </AlertDescription>
           </Alert>
-        </CardContent>
-      </Card>
-
-      {/* Testing helper — exercises the metering/billing endpoints directly */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <FlaskConical className="size-4 text-muted-foreground" />
-            Testing
-          </CardTitle>
-          <CardDescription>
-            Credit the pool without a payment (calls <code>/accounts/{'{id}'}/credit</code>) to
-            exercise metering.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={addCredit.isPending}
-            onClick={() =>
-              addCredit.mutate(
-                { secs: TEST_CREDIT },
-                { onSuccess: () => toast.success(`Added ${formatDuration(TEST_CREDIT)} to the pool`) },
-              )
-            }
-          >
-            Add {formatDuration(TEST_CREDIT)} of credit
-          </Button>
         </CardContent>
       </Card>
 

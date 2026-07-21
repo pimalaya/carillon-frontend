@@ -19,8 +19,8 @@ const POINTS = [
   },
   {
     icon: Wallet,
-    title: 'Pay only for watch-time',
-    body: 'Prepaid, metered by the second. Testing is free; a paused watch costs nothing.',
+    title: 'One simple subscription',
+    body: '€1/month per mailbox — cancel anytime. New mailboxes start with a free trial.',
   },
 ];
 

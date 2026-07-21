@@ -25,16 +25,16 @@ const STAGE_COMPONENTS: ComponentType<StageProps>[] = [
 
 const TITLES = [
   'Add a mailbox',
-  'Test the connection',
+  'Sign in',
   'Configure the webhook',
   'Verify it works',
   'You’re all set',
 ];
 
 const DESCRIPTIONS = [
-  'Find your provider’s IMAP settings — confirm or override them.',
-  'Prove we can watch it: authentication plus the IDLE and QRESYNC capabilities.',
-  'Point the signed webhook at your endpoint, then activate.',
+  'Enter your email — we discover your provider and how to sign in.',
+  'Authenticate and confirm we can watch it (IDLE, and QRESYNC where offered).',
+  'Pick a folder, point the signed webhook at your endpoint, then activate.',
   'Watch your own endpoint fire — read-only, no test button.',
   'Metering runs only while the watch is active.',
 ];

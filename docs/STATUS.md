@@ -4,6 +4,26 @@ A running record of what's built, what's real, and what's left. Pairs with the
 plan in [`PLAN.md`](PLAN.md) (milestones **U0–U6**) and the server design in
 [`../../carillon-server/docs/`](../../carillon-server/docs).
 
+## Landed — 2026-07-21 · subscription billing (credits removed)
+
+The watch-time credits model was replaced with a **single subscription** (server
+§3a). Front-end fallout:
+
+- **Schemas:** `AccountView` now carries subscription state (`subscribed`,
+  `status`, `plan`, `current_period_end`, per-mailbox `trial_active` /
+  `trial_expires`) instead of pool/trial-seconds; billing is `planSchema` +
+  `checkoutResponse{plan}` + `portalResponse`; notices are `trial_ending` /
+  `watch_paused`.
+- **UI:** `BalanceCard` → **`SubscriptionCard`** (status + renew/trial date +
+  Manage-via-portal / Subscribe); `CreditPacks` → **`PlanPicker`** (month/year,
+  no quantity); `AutoRefill` and the Settings "add credit" helper are gone.
+- **API hooks:** `useUnits`→`usePlans`, `useCheckout({plan})`, new `usePortal`;
+  `api/account.ts` (credit/auto-refill) removed.
+- **format.ts:** dropped `formatDuration`/`formatRunway`/`formatWatchTime`/
+  `formatRunoutDate`; added `formatDate` + `daysUntil`.
+- Typecheck + build + 12 tests green. (Also fixed the `vite.config.ts` vitest
+  duplicate-`vite` typing so `tsc -b` is clean.)
+
 ## Landed — 2026-07-20 · aligned to the real server (OpenAPI)
 
 carillon-server landed M1–M7 with a full OpenAPI contract
@@ -53,19 +73,47 @@ mocks + synthetic SSE, and `format`/`auth` unit tests. Milestones U0–U4.
 - Read-only: no send/APPEND/"test mail" action; verify waits for a real change.
 - Two counters: per-mailbox trial before the refillable paid pool; both surfaced.
 
+## Landed — 2026-07-20 · authenticated, scoped live stream
+
+The server gained **route scoping + authed SSE** (carillon-server M8), so the
+admin's stream had to change: browsers' native `EventSource` can't send an
+`Authorization` header, so `lib/sse.ts` now reads `GET /events` via an
+**authenticated fetch stream** — Bearer capability link in the header, SSE
+frames parsed by hand, reconnect with capped backoff — instead of
+`EventSource`. Every REST call already carried the Bearer link, so the whole
+UI now drives the scoped server (each account sees only its own data).
+`vite build` green.
+
+## Landed — 2026-07-20 · discovery in onboarding
+
+The server gained `POST /discover` (io-pim-discovery; carillon-server M9), so
+the **Identify stage was rewritten** from a client-side domain guess to a real
+"put anything → discover → choose" flow (himalaya/ortie-style, web):
+
+- One "email address or server" input + a Discover button → `POST /discover`
+  (public, rate-limited). `useDiscover` hook + `imapChoice`/`authMethod`/
+  `discoverResponse` zod schemas mirror the server.
+- The server groups results into **choices** — one per `(server, auth method)`,
+  mechanism/source dropped — so e.g. Fastmail shows exactly one **Password**
+  card and one **OAuth** card (see carillon-server discover.rs). Each card
+  shows the auth label + `host:port` + a TLS badge; the chosen `auth` method
+  (kind + OAuth endpoints) is stored in the wizard for the next stage. The
+  first TLS choice is auto-picked; a **typed email defaults the login**;
+  login/host/port/folder stay editable; OAuth-only or non-TLS picks get an
+  inline note (OAuth login lands with M9's OAuth half). Unresolvable input →
+  manual entry.
+- **tsc cleanup:** `parseOr` now returns the schema's exact `output<S>` type,
+  which cleared the onboarding test-verdict and CreditPacks nits; only the
+  pre-existing `vite.config.ts` `test`-key nit remains (1, was 3). Added a
+  vitest `exclude` for the nix `.direnv/` source snapshot so `npm run test` is
+  clean again (11 pass). `vite build` green.
+
 ## Known gaps / caveats
 
-- **Not yet built/verified in a real toolchain.** No Node on this machine, so
-  `npm install` / `vite build` / `vitest` have **not** run here. Dep versions are
-  known-good ranges; expect minor reconciliation on first install. `build` is
-  `vite build` (no `tsc` gate) so a stray type nit won't block a bundle; run
-  `npm run typecheck` separately. Not yet exercised against a live server either.
-- **`/watches`, `/deliveries`, `/events` are global on the server** (no per-account
-  scoping / auth). Fine for self-host (one box, one user); the UI reads scoped
-  data via `/me` where it can, but the live stream and global delivery list are
-  server-global. A SaaS deployment would need server-side scoping.
-- **SSE is unauthenticated** in the server today; the UI just opens
-  `EventSource(/events)`. No token in the URL (good), but also no scoping (above).
+- **`vite.config.ts` `test`-key tsc nit** (1) remains — the `/// <reference
+  types="vitest/config" />` augmentation isn't applied to Vite's `defineConfig`
+  in this setup; importing from `vitest/config` regressed it (plugin overload
+  clash). `build` (`vite build`) doesn't gate on `tsc`, so it's cosmetic.
 - **shadcn primitives are hand-written** (no `npx shadcn add` offline); diff
   against the registry when convenient.
 - **MSW service worker** needs a one-time `npm run mocks:init` for mock REST; the

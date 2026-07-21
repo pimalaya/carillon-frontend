@@ -6,35 +6,53 @@ import { queryKeys } from './keys';
 import { parseOr } from './parse';
 import {
   checkoutResponseSchema,
-  packsResponseSchema,
+  plansResponseSchema,
+  portalResponseSchema,
   type CheckoutResponse,
+  type PortalResponse,
 } from './schemas';
 
-/** GET /billing/packs — the catalogue (watch-time only; price is the provider's). */
-export function usePacks() {
+/** GET /billing/plans — the subscription plans on offer (price is the
+ *  provider's, shown on its hosted checkout page). */
+export function usePlans() {
   return useQuery({
-    queryKey: queryKeys.packs(),
+    queryKey: queryKeys.plans(),
     staleTime: 5 * 60_000,
     queryFn: ({ signal }) =>
-      apiFetch<unknown>('/billing/packs', { signal, token: null }).then((d) =>
-        parseOr(packsResponseSchema, d),
+      apiFetch<unknown>('/billing/plans', { signal, token: null }).then((d) =>
+        parseOr(plansResponseSchema, d),
       ),
   });
 }
 
 /**
- * POST /billing/checkout — start a purchase for the link's account. The server
- * records a pending session and returns the provider checkout URL; the top-up
- * lands later via /billing/webhook (in mock mode it settles immediately). (D§3)
+ * POST /billing/checkout — start a subscription to `plan` for one of the
+ * link's mailboxes (subscriptions are per-mailbox). The server records a
+ * pending session and returns the provider checkout URL; the subscription is
+ * activated later via /billing/webhook (in mock mode it settles immediately).
  */
 export function useCheckout() {
   const { activeLink } = useAuth();
   const qc = useQueryClient();
-  return useMutation<CheckoutResponse, Error, string>({
-    mutationFn: (pack) =>
-      apiFetch<unknown>('/billing/checkout', { method: 'POST', body: { pack } }).then((d) =>
+  return useMutation<CheckoutResponse, Error, { plan: string; mailbox_key: string }>({
+    mutationFn: (body) =>
+      apiFetch<unknown>('/billing/checkout', { method: 'POST', body }).then((d) =>
         parseOr(checkoutResponseSchema, d),
       ),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.me(activeLink) }),
+  });
+}
+
+/**
+ * POST /billing/portal — open a self-service billing-portal session (update
+ * card, cancel) for ONE mailbox's subscription. Requires that mailbox to have
+ * a Stripe customer (i.e. having subscribed at least once).
+ */
+export function usePortal() {
+  return useMutation<PortalResponse, Error, { mailbox_key: string }>({
+    mutationFn: (body) =>
+      apiFetch<unknown>('/billing/portal', { method: 'POST', body }).then((d) =>
+        parseOr(portalResponseSchema, d),
+      ),
   });
 }

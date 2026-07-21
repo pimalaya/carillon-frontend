@@ -1,17 +1,6 @@
-import type * as React from 'react';
-
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { watchDisplay, type Tone } from '@/lib/format';
 import type { WatchState } from '@/api/schemas';
-
-const toneToVariant: Record<Tone, React.ComponentProps<typeof Badge>['variant']> = {
-  default: 'secondary',
-  success: 'success',
-  warning: 'warning',
-  destructive: 'destructive',
-  muted: 'muted',
-};
 
 const toneToDot: Record<Tone, string> = {
   default: 'bg-foreground/50',
@@ -21,9 +10,19 @@ const toneToDot: Record<Tone, string> = {
   muted: 'bg-muted-foreground',
 };
 
+const toneToText: Record<Tone, string> = {
+  default: 'text-muted-foreground',
+  success: 'text-foreground',
+  warning: 'text-muted-foreground',
+  destructive: 'text-destructive',
+  muted: 'text-muted-foreground',
+};
+
 /**
- * A watch's status from its REST `active` flag plus any live SSE state. REST
- * only knows active/paused; the connection detail arrives over the stream.
+ * A watch's status from its REST `active` flag plus any live SSE state,
+ * rendered exactly like the header's live indicator: a state-coloured dot
+ * (green when active) plus a label — no filled chip. REST only knows
+ * active/paused; the connection detail arrives over the stream.
  */
 export function StatusBadge({
   active,
@@ -34,7 +33,9 @@ export function StatusBadge({
 }) {
   const { label, tone, pulse } = watchDisplay(active, liveState);
   return (
-    <Badge variant={toneToVariant[tone]} className="gap-1.5">
+    <span
+      className={cn('inline-flex items-center gap-1.5 text-xs font-medium', toneToText[tone])}
+    >
       <span className="relative flex size-2">
         {pulse && (
           <span
@@ -47,6 +48,6 @@ export function StatusBadge({
         <span className={cn('relative inline-flex size-2 rounded-full', toneToDot[tone])} />
       </span>
       {label}
-    </Badge>
+    </span>
   );
 }

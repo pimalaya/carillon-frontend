@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { WatchesList } from '@/features/watches/WatchesList';
-import { BalanceCard } from '@/features/billing/BalanceCard';
+import { SubscriptionCard } from '@/features/billing/SubscriptionCard';
 import { DeliveriesLog } from '@/features/deliveries/DeliveriesLog';
 
 export function DashboardPage() {
@@ -13,7 +13,7 @@ export function DashboardPage() {
     <div>
       <PageHeader
         title="Dashboard"
-        description="Your watches and balance at a glance."
+        description="Your watches and subscription at a glance."
         action={
           <Button onClick={() => navigate('/onboarding')}>
             <Plus />
@@ -33,7 +33,7 @@ export function DashboardPage() {
           </section>
         </div>
         <div className="space-y-6">
-          <BalanceCard />
+          <SubscriptionCard />
         </div>
       </div>
     </div>

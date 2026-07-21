@@ -1,8 +1,8 @@
 import type { DeliveryEvent, WatchState } from '@/api/schemas';
 
-// Presentation helpers: watch-time durations, timestamps (unix seconds, as the
-// server sends them), and the label/tone maps for event types and watch state.
-// Pure, dependency-free. (PLAN §4)
+// Presentation helpers: timestamps (unix seconds, as the server sends them),
+// absolute dates for subscription/trial, and the label/tone maps for event
+// types and watch state. Pure, dependency-free. (PLAN §4)
 
 /** Coerce a unix-seconds number (or ISO string) to epoch millis. */
 function toMillis(t?: number | string | null): number | null {
@@ -10,29 +10,6 @@ function toMillis(t?: number | string | null): number | null {
   if (typeof t === 'number') return t * 1000;
   const parsed = Date.parse(t);
   return Number.isNaN(parsed) ? null : parsed;
-}
-
-/** Human watch-time, e.g. 320000 → "3d 16h". Two most-significant units. */
-export function formatDuration(totalSeconds: number): string {
-  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '0s';
-  const s = Math.floor(totalSeconds);
-  const units: Array<[string, number]> = [
-    ['d', 86_400],
-    ['h', 3_600],
-    ['m', 60],
-    ['s', 1],
-  ];
-  const parts: string[] = [];
-  let rest = s;
-  for (const [label, size] of units) {
-    if (rest >= size || (parts.length > 0 && label !== 's')) {
-      const value = Math.floor(rest / size);
-      if (value > 0 || parts.length > 0) parts.push(`${value}${label}`);
-      rest %= size;
-    }
-    if (parts.length === 2) break;
-  }
-  return parts.length ? parts.slice(0, 2).join(' ') : '0s';
 }
 
 const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
@@ -67,13 +44,23 @@ export function formatDateTime(at?: number | string | null): string {
   });
 }
 
-/**
- * Projected runway: how long the balance lasts at the current watch-rate
- * (seconds/second == number of active watches). Rate 0 → nothing drains.
- */
-export function formatRunway(balanceSeconds: number, ratePerSecond: number): string {
-  if (ratePerSecond <= 0) return 'not draining';
-  return formatDuration(balanceSeconds / ratePerSecond);
+/** An absolute short date from a unix-seconds timestamp — "Aug 3, 2026".
+ *  Used for subscription renewal and trial-end dates. */
+export function formatDate(at?: number | string | null): string {
+  const ms = toMillis(at);
+  if (ms === null) return '—';
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(ms));
+}
+
+/** Whole days from now until `at` (unix seconds); negative if past. */
+export function daysUntil(at?: number | string | null): number | null {
+  const ms = toMillis(at);
+  if (ms === null) return null;
+  return Math.ceil((ms - Date.now()) / 86_400_000);
 }
 
 export type Tone = 'default' | 'success' | 'warning' | 'destructive' | 'muted';
@@ -112,6 +99,8 @@ export function watchDisplay(
       return { label: 'Stopped', tone: 'muted', pulse: false };
     default:
       // Active in the store; the stream hasn't reported a connection state yet.
-      return { label: 'Active', tone: 'default', pulse: true };
+      // Show it green like the header's "Live" indicator — active is healthy
+      // until the stream says otherwise (reconnecting/error handled above).
+      return { label: 'Active', tone: 'success', pulse: true };
   }
 }

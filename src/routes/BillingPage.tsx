@@ -1,23 +1,16 @@
 import { PageHeader } from '@/components/PageHeader';
-import { BalanceCard } from '@/features/billing/BalanceCard';
-import { CreditPacks } from '@/features/billing/CreditPacks';
-import { AutoRefill } from '@/features/billing/AutoRefill';
+import { SubscriptionCard } from '@/features/billing/SubscriptionCard';
 
 export function BillingPage() {
   return (
     <div className="space-y-8">
       <PageHeader
         title="Billing"
-        description="Prepaid, metered watch-time. You pay only for time watched; testing is always free."
+        description="Each mailbox is subscribed on its own. New mailboxes get a free trial; testing is always free."
       />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <BalanceCard />
-        <AutoRefill />
+      <div className="max-w-2xl">
+        <SubscriptionCard />
       </div>
-      <section>
-        <h2 className="mb-3 text-sm font-semibold">Credit packs</h2>
-        <CreditPacks />
-      </section>
     </div>
   );
 }

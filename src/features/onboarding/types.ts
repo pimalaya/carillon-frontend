@@ -1,11 +1,17 @@
-import type { TestVerdict } from '@/api/schemas';
+import type { AuthMethod, TestVerdict } from '@/api/schemas';
 
 export interface WizardState {
-  // Identify (connection details — the server has no discovery endpoint)
+  // Identify (email/server → discovery → chosen IMAP config)
   login: string;
   imap_host: string;
   imap_port: number;
   mailbox: string;
+  /** Chosen choice's transport security (informational — Carillon watches
+   *  over implicit TLS today; starttls/plain aren't wired yet). */
+  security?: 'tls' | 'starttls' | 'plain';
+  /** The auth method the user chose (password / bearer / oauth*). Drives which
+   *  credential form the next stage shows; OAuth carries its endpoints. */
+  auth?: AuthMethod;
   // Authenticate / test
   password: string;
   verdict?: TestVerdict;
@@ -37,8 +43,8 @@ export const initialWizardState: WizardState = {
 
 export const STAGES = ['Identify', 'Authenticate', 'Configure', 'Verify', 'Commit'] as const;
 
-/** Best-effort client-side IMAP host guess from an email domain (no network,
- *  since the server offers no discovery). Always editable by the user. */
+/** Best-effort client-side IMAP host guess from an email domain, used only as
+ *  a fallback for manual entry when discovery finds nothing. Always editable. */
 export function guessImapHost(login: string): string {
   const domain = login.split('@')[1]?.toLowerCase();
   if (!domain) return '';
