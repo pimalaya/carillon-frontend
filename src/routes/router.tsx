@@ -7,7 +7,6 @@ import { DeliveriesPage } from "./DeliveriesPage";
 import { BillingPage } from "./BillingPage";
 import { SettingsPage } from "./SettingsPage";
 import { WatchDetailPage } from "./WatchDetailPage";
-import { OnboardingPage } from "./OnboardingPage";
 import { ServiceWizardPage } from "./ServiceWizardPage";
 import { WelcomePage } from "./WelcomePage";
 import { VerifyPage } from "./VerifyPage";
@@ -19,7 +18,6 @@ export const router = createBrowserRouter([
     children: [
       { path: "welcome", element: <WelcomePage /> },
       { path: "verify", element: <VerifyPage /> },
-      { path: "onboarding", element: <OnboardingPage /> },
       {
         // Everything below requires a stored capability link and renders inside
         // the app shell.

@@ -1,13 +1,13 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowRight,
   CheckCircle2,
   KeyRound,
   ShieldCheck,
-  UserPlus,
   XCircle,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,6 @@ import { useAuth } from "@/lib/auth";
 import { queryKeys } from "@/api/keys";
 import {
   runOauthPopup,
-  useAuthenticate,
   useOauthStart,
   useTestConnect,
   type OauthResult,
@@ -38,20 +37,9 @@ function providerLabel(host: string): string {
   return "your provider";
 }
 
-/** Whether the account may be added: the mailbox is watchable. Re-adding an
- *  account that already exists is fine — the server recovers it — so we no
- *  longer block on `already_watched` (service dedup lives at "Add service"). */
+/** Whether the flow may proceed: the mailbox probed as watchable. */
 function canContinue(v?: TestVerdict): boolean {
   return !!v?.ok;
-}
-
-/** Surface the welcome-credit outcome for a freshly-attached PIM account. */
-function toastFreeCredit(outcome?: string) {
-  if (outcome === "granted") {
-    toast.success("Welcome! 1 free credit added to your pool 🎁");
-  } else if (outcome === "already_claimed") {
-    toast("This mailbox’s free credit was already claimed by another account.");
-  }
 }
 
 /** Synthesises a {@link TestVerdict} from an OAuth callback result, so the
@@ -72,23 +60,25 @@ function verdictFromOauth(r: OauthResult): TestVerdict {
 }
 
 export function AuthenticateStage(props: StageProps) {
-  // OAuth choices sign in with the provider; everything else probes over IMAP.
+  // OAuth choices sign in with the provider; everything else holds a password.
   if (props.state.auth?.kind.startsWith("oauth")) {
     return <OauthAuthenticate {...props} />;
   }
   return <PasswordAuthenticate {...props} />;
 }
 
-/** OAuth sign-in: a popup to the provider; the server keeps the refresh token,
- *  stores it on the PIM account, and mints the capability link on the callback.
- *  No password is stored. Signing in *is* adding the account. */
+/** OAuth sign-in: a popup to the provider; the server keeps the refresh token
+ *  (the one credential still stored server-side, keyed to the mailbox) and joins
+ *  it to this Carillon account on the callback. No password is held. */
 function OauthAuthenticate({ state, update, next, back }: StageProps) {
+  const { t } = useTranslation();
   const { hasAccount, addAccount } = useAuth();
   const qc = useQueryClient();
   const oauthStart = useOauthStart();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const provider = providerLabel(state.imap_host);
+  const isContacts = state.service_type === "addressbook";
 
   async function signIn() {
     if (!state.auth) return;
@@ -99,21 +89,23 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
       const { authorization_url } = await oauthStart.mutateAsync({
         auth: state.auth,
         login: state.login,
+        // For contacts, imap_host already carries the DAV host (set in Identify).
         imap_host: state.imap_host,
         imap_port: state.imap_port,
         mailbox: state.mailbox,
+        source_kind: isContacts ? "carddav" : "imap",
+        carddav_url: isContacts ? state.carddav_base : undefined,
         associate: hasAccount,
       });
       const result = await runOauthPopup(authorization_url);
       if (result.ok && result.link) {
         // Join keeps this under the same Carillon account (matched by accountId);
-        // empty label preserves its email. Refresh /me so the PIM account shows.
+        // empty label preserves its email. Refresh /me so the mailbox shows.
         addAccount({
           label: "",
           link: result.link,
           accountId: result.account_id,
         });
-        toastFreeCredit(result.free_credit);
         qc.invalidateQueries({ queryKey: queryKeys.me(result.link) });
         update({
           capabilityLink: result.link,
@@ -121,13 +113,13 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
           verdict: verdictFromOauth(result),
         });
       } else {
-        setError(result.error ?? "Sign-in failed.");
+        setError(result.error ?? t("onboarding.signInFailed"));
       }
     } catch (err) {
       setError(
         err instanceof ApiError && err.isRateLimited
-          ? "Too many attempts — wait a moment before trying again."
-          : "Could not start sign-in. Please try again.",
+          ? t("onboarding.tooManyAttempts")
+          : t("onboarding.couldNotStart"),
       );
     } finally {
       setBusy(false);
@@ -140,24 +132,23 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
     <div className="space-y-5">
       <Alert>
         <ShieldCheck />
-        <AlertTitle>Sign in with {provider}</AlertTitle>
+        <AlertTitle>{t("onboarding.signInWith", { provider })}</AlertTitle>
         <AlertDescription>
-          A popup takes you to {provider} to authorize mail access. Carillon
-          keeps a refresh token — never your password.
+          {t("onboarding.oauthBody", { provider })}
         </AlertDescription>
       </Alert>
 
       <Button onClick={signIn} disabled={busy}>
         {busy ? <Spinner /> : <ShieldCheck />}
         {signedIn
-          ? `Re-authorize with ${provider}`
-          : `Sign in with ${provider}`}
+          ? t("onboarding.reauthorizeWith", { provider })
+          : t("onboarding.signInWith", { provider })}
       </Button>
 
       {error && (
         <Alert variant="warning">
           <XCircle />
-          <AlertTitle>Not signed in yet</AlertTitle>
+          <AlertTitle>{t("onboarding.notSignedIn")}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
@@ -166,23 +157,26 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
 
       <div className="flex justify-between">
         <Button variant="ghost" onClick={back}>
-          Back
+          {t("onboarding.back")}
         </Button>
         <Button onClick={next} disabled={!canContinue(state.verdict)}>
-          <UserPlus />
-          Add account
+          {t("onboarding.continue")}
+          <ArrowRight />
         </Button>
       </div>
     </div>
   );
 }
 
+/** Password sign-in: enter the app password and (for email) prove it watches
+ *  over a read-only Test. Nothing is stored server-side here — the password is
+ *  held in the wizard and rides through to the service on create (§ v3). For
+ *  contacts the credential is checked when we list addressbooks in the next step. */
 function PasswordAuthenticate({ state, update, next, back }: StageProps) {
-  const { hasAccount, addAccount } = useAuth();
-  const qc = useQueryClient();
+  const { t } = useTranslation();
   const test = useTestConnect();
-  const authenticate = useAuthenticate();
-  const [adding, setAdding] = useState(false);
+
+  const isContacts = state.service_type === "addressbook";
 
   async function runTest() {
     update({ verdict: undefined });
@@ -198,8 +192,8 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
     } catch (err) {
       const message =
         err instanceof ApiError && err.isRateLimited
-          ? "Too many attempts — wait a moment before trying again."
-          : "The connection test failed. Check the settings and try again.";
+          ? t("onboarding.tooManyAttempts")
+          : t("onboarding.testFailed");
       update({
         verdict: {
           ok: false,
@@ -216,52 +210,25 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
     }
   }
 
-  // Adding the account: /auth proves control, stores the credential on the PIM
-  // account, and mints (or recovers/joins) the capability link. The flow then
-  // finishes — services are added afterwards, reusing this credential.
-  async function addAccountNow() {
-    setAdding(true);
-    try {
-      const auth = await authenticate.mutateAsync({
-        imap_host: state.imap_host,
-        imap_port: state.imap_port,
-        login: state.login,
-        password: state.password,
-        mailbox: state.mailbox,
-        associate: hasAccount,
-      });
-      // Same Carillon account (matched by accountId); empty label preserves its
-      // email. Refresh /me so the freshly-attached PIM account appears.
-      addAccount({ label: "", link: auth.link, accountId: auth.account_id });
-      toastFreeCredit(auth.free_credit);
-      qc.invalidateQueries({ queryKey: queryKeys.me(auth.link) });
-      update({ capabilityLink: auth.link, account_id: auth.account_id });
-      next();
-    } catch (err) {
-      setAdding(false);
-      toast.error(
-        err instanceof ApiError && err.status === 401
-          ? "Authentication failed — check the password and try again."
-          : "Could not add the account. Please try again.",
-      );
-    }
-  }
-
-  const canTest = state.login.trim().length > 0 && state.password.length > 0;
+  const hasCreds = state.login.trim().length > 0 && state.password.length > 0;
+  // Email requires a green Test verdict; contacts proceed on creds (the
+  // addressbook listing in the next step is the credential check).
+  const canProceed = isContacts ? hasCreds : canContinue(state.verdict);
 
   return (
     <div className="space-y-5">
       <Alert>
         <KeyRound />
-        <AlertTitle>Use an app password where possible</AlertTitle>
+        <AlertTitle>{t("onboarding.appPwTitle")}</AlertTitle>
         <AlertDescription>
-          The password is sent to the server only for this read-only probe; it’s
-          encrypted at rest when you add the account.
+          {isContacts
+            ? t("onboarding.appPwBodyContacts")
+            : t("onboarding.appPwBodyEmail")}
         </AlertDescription>
       </Alert>
 
       <div className="space-y-2">
-        <Label htmlFor="login">Email / login</Label>
+        <Label htmlFor="login">{t("onboarding.emailLogin")}</Label>
         <Input
           id="login"
           placeholder="you@example.com"
@@ -272,7 +239,7 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password or app password</Label>
+        <Label htmlFor="password">{t("onboarding.passwordLabel")}</Label>
         <Input
           id="password"
           type="password"
@@ -280,34 +247,37 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
           placeholder="••••••••"
           value={state.password}
           onChange={(e) => update({ password: e.target.value })}
-          onKeyDown={(e) => e.key === "Enter" && canTest && runTest()}
+          onKeyDown={(e) =>
+            e.key === "Enter" && hasCreds && !isContacts && runTest()
+          }
         />
-        <p className="text-xs text-muted-foreground">
-          Testing is free and repeatable — nothing is charged.
-        </p>
+        {!isContacts && (
+          <p className="text-xs text-muted-foreground">
+            {t("onboarding.testingFree")}
+          </p>
+        )}
       </div>
 
-      <Button
-        variant="secondary"
-        onClick={runTest}
-        disabled={test.isPending || !canTest}
-      >
-        {test.isPending ? <Spinner /> : <ShieldCheck />}
-        Test connection
-      </Button>
+      {!isContacts && (
+        <Button
+          variant="secondary"
+          onClick={runTest}
+          disabled={test.isPending || !hasCreds}
+        >
+          {test.isPending ? <Spinner /> : <ShieldCheck />}
+          {t("onboarding.testConnection")}
+        </Button>
+      )}
 
-      {state.verdict && <Verdict v={state.verdict} />}
+      {!isContacts && state.verdict && <Verdict v={state.verdict} />}
 
       <div className="flex justify-between">
         <Button variant="ghost" onClick={back}>
-          Back
+          {t("onboarding.back")}
         </Button>
-        <Button
-          onClick={addAccountNow}
-          disabled={!canContinue(state.verdict) || adding}
-        >
-          {adding ? <Spinner /> : <UserPlus />}
-          Add account
+        <Button onClick={next} disabled={!canProceed}>
+          {t("onboarding.continue")}
+          <ArrowRight />
         </Button>
       </div>
     </div>
@@ -332,42 +302,44 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
 /** The shared connection result panel — the same view for the password probe
  *  and the OAuth return. */
 function Verdict({ v }: { v: TestVerdict }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-3 rounded-lg border p-4">
       <div className="grid grid-cols-2 gap-2">
-        <Check ok={v.reachable} label="Reachable" />
-        <Check ok={v.authenticated} label="Authenticated" />
-        <Check ok={v.idle} label="IDLE" />
-        <Check ok={v.qresync} label="QRESYNC" />
+        <Check ok={v.reachable} label={t("onboarding.reachable")} />
+        <Check ok={v.authenticated} label={t("onboarding.authenticated")} />
+        <Check ok={v.idle} label={t("onboarding.idle")} />
+        <Check ok={v.qresync} label={t("onboarding.qresync")} />
       </div>
       {v.ok ? (
         v.qresync ? (
           <Alert variant="success">
             <ShieldCheck />
-            <AlertTitle>Ready to watch</AlertTitle>
+            <AlertTitle>{t("onboarding.readyToWatch")}</AlertTitle>
             <AlertDescription>
-              Reachable, authenticated, and IDLE + QRESYNC all check out.
+              {t("onboarding.readyToWatchBody")}
             </AlertDescription>
           </Alert>
         ) : (
           <Alert variant="warning">
             <ShieldCheck />
-            <AlertTitle>Ready to watch — new messages only</AlertTitle>
+            <AlertTitle>{t("onboarding.readyNewOnly")}</AlertTitle>
             <AlertDescription>
-              This provider doesn’t support QRESYNC, so only new messages will
-              be watched — flag changes and deletions won’t be tracked.
+              {t("onboarding.readyNewOnlyBody")}
             </AlertDescription>
           </Alert>
         )
       ) : (
         <Alert variant="warning">
           <XCircle />
-          <AlertTitle>Can’t watch this mailbox yet</AlertTitle>
+          <AlertTitle>{t("onboarding.cantWatch")}</AlertTitle>
           <AlertDescription>
             {v.error ??
               (v.missing.length
-                ? `The server is missing: ${v.missing.join(", ")}.`
-                : "One or more checks failed.")}
+                ? t("onboarding.cantWatchMissing", {
+                    missing: v.missing.join(", "),
+                  })
+                : t("onboarding.cantWatchGeneric"))}
           </AlertDescription>
         </Alert>
       )}

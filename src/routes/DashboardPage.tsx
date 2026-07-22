@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, Radio } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -17,16 +17,12 @@ export function DashboardPage() {
         title={t("dashboard.title")}
         description={t("dashboard.description")}
         action={
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/services/new")}>
-              <Radio />
-              {t("dashboard.addService")}
-            </Button>
-            <Button onClick={() => navigate("/onboarding")}>
-              <Plus />
-              {t("dashboard.addAccount")}
-            </Button>
-          </div>
+          // One entry point: "Add service" starts the flow (which connects a new
+          // account when needed). Adding a Carillon account lives in the switcher.
+          <Button onClick={() => navigate("/services/new")}>
+            <Plus />
+            {t("dashboard.addService")}
+          </Button>
         }
       />
       <div className="grid gap-6 lg:grid-cols-3">

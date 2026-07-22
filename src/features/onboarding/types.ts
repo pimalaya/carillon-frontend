@@ -15,13 +15,14 @@ export interface WizardState {
   // Authenticate / test
   password: string;
   verdict?: TestVerdict;
-  /** The PIM account (normalised login) a service is being added to. Set by the
-   *  "Add service" flow; unused by "Add account". */
-  mailbox_key?: string;
-  /** Which kind of service the "Add service" flow is creating: an email folder
-   *  (IMAP) or an addressbook (CardDAV). Defaults to email. */
+  /** Which kind of service is being created: an email folder (IMAP) or an
+   *  addressbook (CardDAV). Chosen first, in Identify. Defaults to email. */
   service_type?: "email" | "addressbook";
-  /** CardDAV collection URL, when `service_type` is `addressbook`. */
+  /** CardDAV context-root URL discovered in Identify — where addressbooks are
+   *  listed from (and the identity host). Set for `addressbook` services. */
+  carddav_base?: string;
+  /** The chosen CardDAV addressbook collection URL (picked in Configure from
+   *  `carddav_base`, or entered manually). Goes on the watch. */
   carddav_url?: string;
   // Configure
   notify_url: string;
@@ -49,13 +50,17 @@ export const initialWizardState: WizardState = {
   notify_url: "",
 };
 
-/** "Add account" (onboarding) stops once a PIM account is authenticated and its
- *  credential is stored — no service is created here. */
-export const STAGES = ["Identify", "Authenticate"] as const;
-
-/** "Add service" runs against an already-authenticated PIM account, reusing its
- *  stored credential. */
-export const SERVICE_STAGES = ["Configure", "Verify", "Commit"] as const;
+/** The single "Add service" flow (§ SERVICE_MODEL v3): identify what to watch,
+ *  sign in (the credential is held here and stored on the service), pick the
+ *  target + webhook, watch it fire, done. No separate "Add account" step —
+ *  account/credential and service are one thing now. */
+export const WIZARD_STAGES = [
+  "Identify",
+  "Authenticate",
+  "Configure",
+  "Verify",
+  "Commit",
+] as const;
 
 /** Best-effort client-side IMAP host guess from an email domain, used only as
  *  a fallback for manual entry when discovery finds nothing. Always editable. */

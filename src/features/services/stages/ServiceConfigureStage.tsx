@@ -1,14 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  BookUser,
-  CheckCircle2,
-  Mail,
-  Rocket,
-  Send,
-  Webhook,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, Rocket, Send, Webhook, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,12 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Spinner } from "@/components/Spinner";
-import { cn } from "@/lib/utils";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { useMailboxes, useTestCardDav, useTestWebhook } from "@/api/onboarding";
+import {
+  useAddressbooks,
+  useMailboxes,
+  useTestWebhook,
+} from "@/api/onboarding";
 import { useCreateWatch } from "@/api/watches";
-import type { TestVerdict, WebhookTestResult } from "@/api/schemas";
+import type { CreateWatchRequest, WebhookTestResult } from "@/api/schemas";
 import {
   isValidNotifyUrl,
   randomSecret,
@@ -30,22 +25,7 @@ import {
   type StageProps,
 } from "@/features/onboarding/types";
 
-/** One PIM account the service can be added to. */
-export interface PimAccountOption {
-  mailbox_key: string;
-  login: string;
-  imap_host: string;
-  imap_port: number;
-}
-
-interface ServiceConfigureProps extends StageProps {
-  /** PIM accounts on this Carillon account, to add the service to. */
-  options: PimAccountOption[];
-  /** Switch the target PIM account (re-seeds host/login/port + folders). */
-  onSelectAccount: (mailboxKey: string) => void;
-}
-
-/** A CardDAV collection URL is https + has a path (the addressbook). */
+/** A CardDAV collection URL is https. */
 function isValidCardDavUrl(url: string | undefined): boolean {
   if (!url) return false;
   try {
@@ -55,53 +35,71 @@ function isValidCardDavUrl(url: string | undefined): boolean {
   }
 }
 
-/** A friendly default addressbook name from the collection URL's last segment. */
+/** A friendly default addressbook name from the collection URL's last segment
+ *  (only used for the manual-URL fallback; the picker uses the reported name). */
 function deriveName(url: string | undefined): string {
   if (!url) return "";
   const segment = url.replace(/\/+$/, "").split("/").pop() ?? "";
   return decodeURIComponent(segment);
 }
 
-/** "Add service" — configure a service on an already-authenticated PIM account,
- *  reusing that account's stored credential (created with no password — the
- *  server reuses it). The service is an IMAP folder or a CardDAV addressbook. */
+/** "Configure" — pick the target (an IMAP folder or a CardDAV addressbook, each a
+ *  dropdown of what the account actually has) and the webhook URL, then create
+ *  the service. The credential lives on the service now (§ SERVICE_MODEL v3): the
+ *  held password rides through on create, and the target-listing doubles as its
+ *  check. An OAuth mailbox carries no password — the server lists and watches it
+ *  with the stored refresh token (sent via the capability link). */
 export function ServiceConfigureStage({
   state,
   update,
   next,
   back,
-  options,
-  onSelectAccount,
-}: ServiceConfigureProps) {
+}: StageProps) {
   const { t } = useTranslation();
   const { activeLink } = useAuth();
   const createWatch = useCreateWatch();
   const testWebhook = useTestWebhook();
-  const testCardDav = useTestCardDav();
   const [webhookResult, setWebhookResult] = useState<WebhookTestResult | null>(
     null,
   );
-  const [cardVerdict, setCardVerdict] = useState<TestVerdict | null>(null);
 
-  const serviceType = state.service_type ?? "email";
-  const isAddressbook = serviceType === "addressbook";
+  const isAddressbook = state.service_type === "addressbook";
   const urlValid = isValidNotifyUrl(state.notify_url);
   const cardUrlValid = isValidCardDavUrl(state.carddav_url);
   const busy = createWatch.isPending;
   const canAdd = urlValid && !busy && (!isAddressbook || cardUrlValid);
 
-  // Fetch the folder list for the chosen PIM account (email services only). The
-  // list is authenticated with the account's stored credential — we send the
-  // capability link and an empty password, and the server resolves it. Keyed by
-  // the connection, so switching accounts refetches. (api.rs /mailboxes)
+  // The wizard holds a password for the password path; an OAuth mailbox has none
+  // and lists via its stored credential (sent by the capability link instead).
+  const hasPassword = state.password.length > 0;
+
+  // Fetch the folder list for an email service. With a password we list via
+  // LOGIN (unauthenticated); for OAuth we send the capability link and the
+  // server uses the stored refresh token. Keyed by the connection. (api.rs)
   const mailboxesQuery = useMailboxes({
     imap_host: state.imap_host,
     imap_port: state.imap_port,
     login: state.login,
-    link: activeLink ?? undefined,
-    enabled: !isAddressbook && !!state.mailbox_key && !!state.imap_host,
+    password: hasPassword ? state.password : undefined,
+    link: hasPassword ? undefined : (activeLink ?? undefined),
+    enabled: !isAddressbook && !!state.imap_host && (hasPassword || !!activeLink),
   });
   const mailboxes = mailboxesQuery.data?.mailboxes ?? [];
+
+  // List the collections under the discovered context root — the addressbook
+  // dropdown, exactly like the folder picker. Password path sends the held
+  // password; OAuth sends the capability link (stored refresh token). (api.rs)
+  const davBase = state.carddav_base ?? "";
+  const addressbooksQuery = useAddressbooks({
+    carddav_url: davBase,
+    login: state.login,
+    password: hasPassword ? state.password : undefined,
+    link: hasPassword ? undefined : (activeLink ?? undefined),
+    enabled: isAddressbook && !!davBase && (hasPassword || !!activeLink),
+  });
+  const addressbooks = addressbooksQuery.data?.addressbooks ?? [];
+  // The listing failed (or there's no base URL) — fall back to a pasted URL.
+  const davManual = isAddressbook && (!davBase || addressbooksQuery.isError);
 
   // Default the folder to the first listed one (unless the current pick is in
   // the list) once the folders arrive.
@@ -113,21 +111,14 @@ export function ServiceConfigureStage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mailboxesQuery.data]);
 
-  function chooseType(type: "email" | "addressbook") {
-    if (type === serviceType) return;
-    setCardVerdict(null);
-    // The `mailbox` field doubles as the IMAP folder / the addressbook display
-    // name — swap the placeholder-ish "INBOX" default out when leaving email.
-    update({
-      service_type: type,
-      mailbox:
-        type === "addressbook"
-          ? state.mailbox === "INBOX"
-            ? ""
-            : state.mailbox
-          : state.mailbox || "INBOX",
-    });
-  }
+  // Default to the first listed addressbook (carrying its name) once they load.
+  useEffect(() => {
+    if (!isAddressbook) return;
+    const first = addressbooks[0];
+    if (first && !addressbooks.some((b) => b.url === state.carddav_url))
+      update({ carddav_url: first.url, mailbox: first.name });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressbooksQuery.data]);
 
   async function runWebhookTest() {
     if (!urlValid || !state.hmac_secret) return;
@@ -150,57 +141,47 @@ export function ServiceConfigureStage({
     }
   }
 
-  async function runCardDavTest() {
-    if (!cardUrlValid || !activeLink) return;
-    setCardVerdict(null);
-    try {
-      const verdict = await testCardDav.mutateAsync({
-        carddav_url: state.carddav_url!,
-        imap_host: state.imap_host,
-        login: state.login,
-        link: activeLink,
-      });
-      setCardVerdict(verdict);
-    } catch {
-      setCardVerdict(null);
-      toast.error(t("services.carddavFail"));
-    }
-  }
-
   async function addService() {
     try {
       const secret = state.hmac_secret ?? randomSecret();
       const id = randomWatchId();
-      // No password: the credential lives on the PIM account and the server
-      // reuses it. The client owns the watch id + HMAC secret so the next step
-      // can show the secret once.
-      if (isAddressbook) {
-        const name = state.mailbox?.trim() || deriveName(state.carddav_url);
-        await createWatch.mutateAsync({
-          id,
-          source_kind: "carddav",
-          imap_host: state.imap_host,
-          imap_port: state.imap_port,
-          login: state.login,
-          mailbox: name || "Addressbook",
-          carddav_url: state.carddav_url,
-          notify_url: state.notify_url,
-          hmac_secret: secret,
-          account_id: state.account_id,
-          active: true,
-        });
-      } else {
-        await createWatch.mutateAsync({
-          id,
-          imap_host: state.imap_host,
-          imap_port: state.imap_port,
-          login: state.login,
-          mailbox: state.mailbox,
-          notify_url: state.notify_url,
-          hmac_secret: secret,
-          account_id: state.account_id,
-          active: true,
-        });
+      // The password (when held) is stored on the watch; an OAuth mailbox sends
+      // none and the server uses its stored credential. The client owns the
+      // watch id + HMAC secret so the next step can show the secret once.
+      const password = state.password || undefined;
+      const body: CreateWatchRequest = isAddressbook
+        ? {
+            id,
+            source_kind: "carddav",
+            imap_host: state.imap_host,
+            imap_port: state.imap_port,
+            login: state.login,
+            password,
+            // Use the addressbook's own name (from the picker), like a folder.
+            mailbox: state.mailbox?.trim() || deriveName(state.carddav_url) || "Addressbook",
+            carddav_url: state.carddav_url,
+            notify_url: state.notify_url,
+            hmac_secret: secret,
+            account_id: state.account_id,
+            active: true,
+          }
+        : {
+            id,
+            imap_host: state.imap_host,
+            imap_port: state.imap_port,
+            login: state.login,
+            password,
+            mailbox: state.mailbox,
+            notify_url: state.notify_url,
+            hmac_secret: secret,
+            account_id: state.account_id,
+            active: true,
+          };
+      const result = await createWatch.mutateAsync(body);
+      // Free-trial head start: explicit about *why* it's free (first service on
+      // this provider). Non-first services on the same provider get nothing.
+      if (result.free_trial && result.provider) {
+        toast.success(t("services.trialGranted", { provider: result.provider }));
       }
       update({ watchId: id, hmac_secret: secret });
       next();
@@ -222,102 +203,69 @@ export function ServiceConfigureStage({
 
   return (
     <div className="space-y-5">
-      {/* Service type: an IMAP folder (held IDLE) or a CardDAV addressbook (polled). */}
-      <div className="space-y-2">
-        <Label>{t("services.type.label")}</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <TypeCard
-            active={!isAddressbook}
-            icon={<Mail className="size-4" />}
-            title={t("services.type.email")}
-            hint={t("services.type.emailHint")}
-            onClick={() => chooseType("email")}
-          />
-          <TypeCard
-            active={isAddressbook}
-            icon={<BookUser className="size-4" />}
-            title={t("services.type.addressbook")}
-            hint={t("services.type.addressbookHint")}
-            onClick={() => chooseType("addressbook")}
-          />
-        </div>
-      </div>
-
-      {options.length > 1 && (
-        <div className="space-y-2">
-          <Label htmlFor="account">{t("services.account")}</Label>
-          <Select
-            id="account"
-            value={state.mailbox_key ?? ""}
-            onChange={(e) => onSelectAccount(e.target.value)}
-          >
-            {options.map((o) => (
-              <option key={o.mailbox_key} value={o.mailbox_key}>
-                {o.login}
-              </option>
-            ))}
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            {isAddressbook
-              ? t("services.accountHintAddressbook")
-              : t("services.accountHintEmail")}
-          </p>
-        </div>
-      )}
-
       {isAddressbook ? (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="carddav-url">{t("services.carddavUrl")}</Label>
-            <div className="flex gap-2">
-              <Input
-                id="carddav-url"
-                type="url"
-                placeholder={t("services.carddavUrlPlaceholder")}
-                value={state.carddav_url ?? ""}
-                onChange={(e) => {
-                  update({ carddav_url: e.target.value });
-                  setCardVerdict(null);
-                }}
-              />
-              <Button
-                variant="secondary"
-                onClick={runCardDavTest}
-                disabled={!cardUrlValid || testCardDav.isPending}
-              >
-                {testCardDav.isPending ? <Spinner /> : <Send />}
-                {t("common.test")}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t("services.carddavUrlHint")}
-            </p>
-            {cardVerdict &&
-              (cardVerdict.ok ? (
-                <p className="flex items-center gap-1.5 text-xs text-success">
-                  <CheckCircle2 className="size-3.5" />
-                  {t("services.carddavOk")}
-                </p>
-              ) : (
-                <p className="flex items-center gap-1.5 text-xs text-destructive">
-                  <XCircle className="size-3.5" />
-                  {cardVerdict.reachable && cardVerdict.authenticated
-                    ? t("services.carddavNoSync")
-                    : t("services.carddavFail")}
-                </p>
-              ))}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="card-name">{t("services.carddavName")}</Label>
+        <div className="space-y-2">
+          <Label htmlFor="addressbook">{t("services.addressbookPick")}</Label>
+          {davManual ? (
+            // No listing (server we couldn't enumerate, or wrong credentials):
+            // paste the collection URL; its last path segment becomes the name.
             <Input
-              id="card-name"
-              value={state.mailbox === "INBOX" ? "" : state.mailbox}
-              onChange={(e) => update({ mailbox: e.target.value })}
-              placeholder={t("services.carddavNamePlaceholder")}
+              id="addressbook"
+              type="url"
+              placeholder={t("services.carddavUrlPlaceholder")}
+              value={state.carddav_url ?? ""}
+              onChange={(e) =>
+                update({
+                  carddav_url: e.target.value,
+                  mailbox: deriveName(e.target.value),
+                })
+              }
             />
-          </div>
-        </>
+          ) : (
+            <Select
+              id="addressbook"
+              value={state.carddav_url ?? ""}
+              loading={addressbooksQuery.isFetching}
+              onChange={(e) => {
+                const book = addressbooks.find((b) => b.url === e.target.value);
+                update({
+                  carddav_url: e.target.value,
+                  mailbox: book?.name ?? state.mailbox,
+                });
+              }}
+            >
+              {/* Keep the current value selectable even before the list loads. */}
+              {addressbooks.length === 0 && (
+                <option value={state.carddav_url ?? ""} disabled>
+                  {addressbooksQuery.isFetching
+                    ? t("services.addressbooksLoading")
+                    : t("services.chooseAddressbook")}
+                </option>
+              )}
+              {addressbooks.map((book) => (
+                <option key={book.url} value={book.url}>
+                  {book.name}
+                </option>
+              ))}
+            </Select>
+          )}
+          {addressbooksQuery.isError ? (
+            // The listing failed (usually CardDAV auth): say why, and let the
+            // user paste the collection URL as a fallback.
+            <p className="text-xs text-destructive">
+              {t("services.addressbooksError")}
+              {addressbooksQuery.error instanceof Error
+                ? ` (${addressbooksQuery.error.message})`
+                : ""}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {addressbooksQuery.isFetching
+                ? t("services.addressbooksLoading")
+                : t("services.addressbookPickHint")}
+            </p>
+          )}
+        </div>
       ) : (
         <div className="space-y-2">
           <Label htmlFor="mailbox">{t("services.folder")}</Label>
@@ -332,7 +280,7 @@ export function ServiceConfigureStage({
             <Select
               id="mailbox"
               value={state.mailbox}
-              disabled={mailboxesQuery.isFetching}
+              loading={mailboxesQuery.isFetching}
               onChange={(e) => update({ mailbox: e.target.value })}
             >
               {/* Keep the current value selectable even before the list loads. */}
@@ -419,39 +367,5 @@ export function ServiceConfigureStage({
         </Button>
       </div>
     </div>
-  );
-}
-
-/** A selectable service-type card (email vs addressbook). */
-function TypeCard({
-  active,
-  icon,
-  title,
-  hint,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ReactNode;
-  title: string;
-  hint: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-lg border p-3 text-left transition-colors",
-        active
-          ? "border-primary bg-primary/5"
-          : "hover:border-muted-foreground/40 hover:bg-secondary/40",
-      )}
-    >
-      <div className="flex items-center gap-2 text-sm font-medium">
-        {icon}
-        {title}
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-    </button>
   );
 }

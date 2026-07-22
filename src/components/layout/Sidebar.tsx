@@ -31,10 +31,10 @@ export function Sidebar() {
         <Button
           className="w-full justify-start"
           size="sm"
-          onClick={() => navigate("/onboarding")}
+          onClick={() => navigate("/services/new")}
         >
           <Plus />
-          {t("nav.addAccount")}
+          {t("dashboard.addService")}
         </Button>
       </div>
       <nav className="mt-4 flex flex-col gap-1 px-3">

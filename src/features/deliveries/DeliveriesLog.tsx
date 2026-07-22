@@ -40,7 +40,10 @@ export function DeliveriesLog({
 
   const watchLabel = useMemo(() => {
     const map = new Map<string, string>();
-    for (const w of watches ?? []) map.set(w.id, `${w.login} · ${w.mailbox}`);
+    // Label by the provider domain (not the login/email — which doesn't exist
+    // for an OAuth service) plus the target.
+    for (const w of watches ?? [])
+      map.set(w.id, `${w.provider || w.imap_host} · ${w.mailbox}`);
     return map;
   }, [watches]);
 
@@ -76,7 +79,7 @@ export function DeliveriesLog({
         title="No deliveries yet"
         description={
           emptyHint ??
-          "When a watched mailbox changes, the signed webhook fires and shows up here — UID only, never content."
+          "When a watched source changes, the signed webhook fires and shows up here — a reference only, never content."
         }
       />
     );
@@ -90,7 +93,6 @@ export function DeliveriesLog({
             <TableHead>Time</TableHead>
             <TableHead>Event</TableHead>
             {showWatch && <TableHead>Watch</TableHead>}
-            <TableHead>UID</TableHead>
             <TableHead>Result</TableHead>
             <TableHead className="text-right">Attempts</TableHead>
           </TableRow>
@@ -112,7 +114,6 @@ export function DeliveriesLog({
                   {watchLabel.get(d.account) ?? d.account}
                 </TableCell>
               )}
-              <TableCell className="font-mono text-xs">{d.uid}</TableCell>
               <TableCell>
                 <span
                   className={cn(

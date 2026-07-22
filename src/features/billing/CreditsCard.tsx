@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMe } from "@/api/me";
 import { useCheckout } from "@/api/billing";
-import { PACK_SIZE } from "@/api/schemas";
+import { PACK_SIZE, CREDIT_PRICE_EUR } from "@/api/schemas";
 import { config } from "@/lib/config";
 
 /** The credit pool: current balance + a "buy N packs" control. A pack is the
@@ -73,8 +73,9 @@ export function CreditsCard() {
       <CardHeader>
         <CardTitle>Credits</CardTitle>
         <CardDescription>
-          1 credit = one month watching one mailbox (€1). Refill in packs of{" "}
-          {PACK_SIZE} (€{PACK_SIZE}).
+          1 credit = one month watching one mailbox (€
+          {CREDIT_PRICE_EUR.toFixed(2)}). Refill in packs of {PACK_SIZE} (€
+          {PACK_SIZE * CREDIT_PRICE_EUR}).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">

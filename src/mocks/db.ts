@@ -16,13 +16,13 @@ import type {
 // Dev-only — lazily imported. (PLAN §7)
 //
 // Model: per-service credit pool (§ BILLING_MODEL). 1 credit = one month
-// watching one service (watch). Refill in packs of 5.
+// watching one service (watch). Refill in packs of 4.
 
 export const DEMO_LINK = "demo-cap-2f9a8c1e";
 
 const DAY = 86_400;
 const MONTH = 30 * DAY;
-const PACK_SIZE = 5;
+const PACK_SIZE = 4;
 const FREE_CREDITS = 1;
 
 interface MockWatch extends WatchView {
@@ -207,6 +207,7 @@ function mkWatch(
     imap_host,
     imap_port: 993,
     login,
+    provider: providerOf(imap_host),
     mailbox,
     notify_url,
     active,
@@ -215,6 +216,13 @@ function mkWatch(
     watching_until,
     auto_renew,
   };
+}
+
+/** Registrable domain (last two labels) of a host — mirrors the server's
+ *  provider domain, for the demo. */
+function providerOf(host: string): string {
+  const labels = host.toLowerCase().split(".").filter(Boolean);
+  return labels.length >= 2 ? labels.slice(-2).join(".") : host;
 }
 
 /** Resolve an account by link, auto-provisioning empty ones so any stored link
@@ -298,14 +306,18 @@ export const mockDb = {
       account_id: account.id,
       mailboxes: account.memberships.map((m) => ({
         mailbox_key: m.mailbox_key,
+        protocol: "imap" as const,
         login: m.login,
         imap_host: m.imap_host,
+        imap_port: 993,
+        base_url: null,
       })),
       watches: watches
         .filter((w) => w.account_id === account.id)
         .map(toWatchView),
       balance: accountView(account),
       metered: true,
+      carddav_poll_secs: 300,
     };
   },
 
@@ -325,7 +337,7 @@ export const mockDb = {
     account_id?: string;
     active?: boolean;
     carddav_url?: string;
-  }): { status: string; id: string } | "duplicate" {
+  }): { status: string; id: string; free_trial?: boolean } | "duplicate" {
     const account_id = body.account_id ?? body.id;
     const mailbox = body.mailbox ?? "INBOX";
     // Dedup a service by (account, login, target) WITHIN an account: a CardDAV
@@ -339,24 +351,29 @@ export const mockDb = {
         (w.carddav_url ?? w.mailbox) === target,
     );
     if (clash) return "duplicate";
+    // Free-trial head start (§ SERVICE_MODEL v3): a new service auto-watches for
+    // a week, no credit spent. The real server gates this once per mailbox; the
+    // mock always grants it so the demo shows the happy "watching free" path.
+    const trialUntil = nowSecs() + 7 * 86_400;
     const watch: MockWatch = {
       id: body.id,
       source_kind: body.source_kind ?? "imap",
       imap_host: body.imap_host,
       imap_port: body.imap_port ?? 993,
       login: body.login,
+      provider: providerOf(body.imap_host),
       mailbox,
       notify_url: body.notify_url,
       active: body.active ?? true,
       carddav_url: body.carddav_url,
       hmac_secret: body.hmac_secret,
       account_id,
-      watching_until: null,
+      watching_until: trialUntil,
       auto_renew: false,
     };
     watches.unshift(watch);
     byId(account_id) ?? resolve(`orphan-${account_id}`);
-    return { status: "ok", id: watch.id };
+    return { status: "ok", id: watch.id, free_trial: true };
   },
 
   setActive(id: string, active: boolean): boolean {

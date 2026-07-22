@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, KeyRound, LogOut, Mail, ShieldAlert } from "lucide-react";
+import { BookOpen, KeyRound, LogOut, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -13,10 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CopyButton } from "@/components/CopyButton";
-import { useMe } from "@/api/me";
 import { useSignout } from "@/api/onboarding";
 import { useAuth } from "@/lib/auth";
 
@@ -28,7 +26,6 @@ function maskLink(link: string): string {
 export function SettingsPanel() {
   const navigate = useNavigate();
   const { active, renameAccount, removeAccount, clearAll } = useAuth();
-  const { data: me } = useMe();
   const signout = useSignout();
   const [label, setLabel] = useState(active?.label ?? "");
 
@@ -78,41 +75,6 @@ export function SettingsPanel() {
         </CardContent>
       </Card>
 
-      {/* Connected PIM accounts */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Accounts</CardTitle>
-          <CardDescription>
-            Every PIM account authenticated into this Carillon account.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {(me?.mailboxes ?? []).map((m) => (
-            <div
-              key={m.mailbox_key}
-              className="flex items-center gap-2 text-sm"
-            >
-              <Mail className="size-4 text-muted-foreground" />
-              {m.login}
-              <span className="text-xs text-muted-foreground">
-                · {m.imap_host}
-              </span>
-            </div>
-          ))}
-          {(me?.mailboxes?.length ?? 0) === 0 && (
-            <p className="text-sm text-muted-foreground">No accounts yet.</p>
-          )}
-          <Separator className="my-3" />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate("/onboarding")}
-          >
-            Add account
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* Capability link */}
       <Card>
         <CardHeader>
@@ -136,8 +98,8 @@ export function SettingsPanel() {
             <ShieldAlert />
             <AlertTitle>Keep it secret</AlertTitle>
             <AlertDescription>
-              Store it in a password manager. Lost it? Re-authenticate any
-              member mailbox to re-mint the link — no email involved.
+              Store it in a password manager. Lost it? Sign in again with your
+              email to mint a fresh link.
             </AlertDescription>
           </Alert>
         </CardContent>

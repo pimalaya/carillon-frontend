@@ -9,6 +9,20 @@ import { z } from "zod";
 // Invariant: nothing here carries message content. Events are {account, event,
 // uid} only — no sender, subject, or body. (DECISIONS §1, §4)
 
+/**
+ * Free-credit outcome when the account earns its welcome credit (its first
+ * service, § SERVICE_MODEL v3): the credit was `granted`, the account had
+ * `already_credited` used its one credit, or this mailbox's credit was
+ * `already_claimed` by another Carillon account (the sybil barrier — the mailbox
+ * can still be watched, just without a free credit).
+ */
+export const freeCreditSchema = z.enum([
+  "granted",
+  "already_credited",
+  "already_claimed",
+]);
+export type FreeCredit = z.infer<typeof freeCreditSchema>;
+
 // ── Watches ───────────────────────────────────────────────────────────────────
 
 /** A watch's REST view — never the password or HMAC secret. (WatchView) */
@@ -20,6 +34,9 @@ export const watchViewSchema = z.object({
   imap_host: z.string(),
   imap_port: z.number(),
   login: z.string(),
+  /** Provider domain (registrable domain of the server host, e.g. `fastmail.com`)
+   *  — the label the UI groups + names services by. */
+  provider: z.string().default(""),
   mailbox: z.string(),
   notify_url: z.string(),
   active: z.boolean(),
@@ -79,6 +96,12 @@ export interface CreateWatchRequest {
 export const createWatchResultSchema = z.object({
   status: z.string(),
   id: z.string(),
+  /** Whether a free-trial head start was granted to this service (§ v3): the
+   *  account's first service on a provider auto-watches free for a week. */
+  free_trial: z.boolean().optional(),
+  /** The provider domain the service was grouped/trial-gated under (e.g.
+   *  `fastmail.com` — the registrable domain of the server host). */
+  provider: z.string().optional(),
 });
 
 export const rotateResultSchema = z.object({
@@ -118,6 +141,23 @@ export const imapChoiceSchema = z.object({
   auth: authMethodSchema,
 });
 export type ImapChoice = z.infer<typeof imapChoiceSchema>;
+
+/** One contacts (CardDAV) onboarding choice — a discovered context-root URL +
+ *  how to authenticate. No host/port (CardDAV is HTTP). (CardDavChoice) */
+export const cardDavChoiceSchema = z.object({
+  url: z.string(),
+  auth: authMethodSchema,
+});
+export type CardDavChoice = z.infer<typeof cardDavChoiceSchema>;
+
+export const contactsDiscoverResponseSchema = z.object({
+  input: z.string(),
+  kind: z.string().optional(),
+  choices: z.array(cardDavChoiceSchema).default([]),
+});
+export type ContactsDiscoverResponse = z.infer<
+  typeof contactsDiscoverResponseSchema
+>;
 
 export const discoverResponseSchema = z.object({
   input: z.string(),
@@ -171,6 +211,18 @@ export const mailboxesResponseSchema = z.object({
 });
 export type MailboxesResponse = z.infer<typeof mailboxesResponseSchema>;
 
+/** One addressbook collection a CardDAV service can watch (POST /addressbooks). */
+export const addressbookEntrySchema = z.object({
+  name: z.string(),
+  url: z.string(),
+});
+export type AddressbookEntry = z.infer<typeof addressbookEntrySchema>;
+
+export const addressbooksResponseSchema = z.object({
+  addressbooks: z.array(addressbookEntrySchema).default([]),
+});
+export type AddressbooksResponse = z.infer<typeof addressbooksResponseSchema>;
+
 // ── Webhook test (POST /webhook/test) ──────────────────────────────────────────
 
 /** Result of a one-shot test POST: did the endpoint ack, with which status. */
@@ -184,25 +236,17 @@ export type WebhookTestResult = z.infer<typeof webhookTestResultSchema>;
 // ── Identity (login-less accounts, D§5) ───────────────────────────────────────
 
 export interface AuthRequest {
+  /** `imap` (default) or `carddav`. Selects how the credential is validated
+   *  (IMAP LOGIN vs a CardDAV PROPFIND) and the PIM account's protocol. */
+  protocol?: "imap" | "carddav";
   imap_host: string;
   imap_port: number;
   login: string;
   password: string;
   mailbox: string;
+  /** CardDAV context-root URL (required when `protocol` is `carddav`). */
+  carddav_url?: string;
 }
-
-/**
- * Free-credit outcome when a PIM account is validated: the welcome credit was
- * `granted`, the account had `already_credited` used its one credit, or this
- * mailbox's credit was `already_claimed` by another Carillon account (the sybil
- * barrier — the mailbox can still be watched, just without a free credit).
- */
-export const freeCreditSchema = z.enum([
-  "granted",
-  "already_credited",
-  "already_claimed",
-]);
-export type FreeCredit = z.infer<typeof freeCreditSchema>;
 
 /**
  * Result of POST /auth. First auth `created` an account, a re-auth `recovered`
@@ -213,6 +257,7 @@ export const authResultSchema = z.object({
   account_id: z.string(),
   action: z.enum(["created", "recovered", "joined"]),
   link: z.string(),
+  protocol: z.string().optional(),
   watchable: z.boolean(),
   idle: z.boolean(),
   qresync: z.boolean(),
@@ -223,7 +268,11 @@ export type AuthResult = z.infer<typeof authResultSchema>;
 // ── Account & credit pool (per-service, § BILLING_MODEL) ──────────────────────
 
 /** Credits per pack — the only refill unit. Mirrors billing.rs PACK_SIZE. */
-export const PACK_SIZE = 5;
+export const PACK_SIZE = 4;
+
+/** Per-credit price in EUR, for display only. The real charge is the Stripe
+ *  Price object; this just labels the UI (1 credit = one service-month). */
+export const CREDIT_PRICE_EUR = 2.5;
 
 /** A service (or proven-but-unwatched mailbox) within an account view, with its
  *  per-service activation state. */
@@ -254,11 +303,16 @@ export const accountViewSchema = z.object({
 });
 export type AccountView = z.infer<typeof accountViewSchema>;
 
-/** A proven mailbox membership, as returned by /me. */
+/** A proven PIM account (identity + protocol), as returned by /me. */
 export const membershipSchema = z.object({
   mailbox_key: z.string(),
+  /** Source protocol: `imap` or `carddav`. */
+  protocol: z.enum(["imap", "carddav"]).default("imap"),
   login: z.string(),
   imap_host: z.string(),
+  imap_port: z.number().default(993),
+  /** CardDAV context-root URL (for listing addressbooks); absent for IMAP. */
+  base_url: z.string().nullable().optional(),
 });
 export type Membership = z.infer<typeof membershipSchema>;
 
@@ -270,6 +324,9 @@ export const meSchema = z.object({
   balance: accountViewSchema,
   /** Whether watching is credit-metered (SaaS); false on an unmetered self-host. */
   metered: z.boolean().default(true),
+  /** Default CardDAV poll interval (seconds) — shown on a contacts service's
+   *  capability panel. */
+  carddav_poll_secs: z.number().default(300),
 });
 export type Me = z.infer<typeof meSchema>;
 
@@ -284,6 +341,7 @@ export type MeData = Omit<Me, "watches"> & { watches: Watch[] };
 
 export const deliveryEventSchema = z.enum([
   "new",
+  "changed",
   "flags_added",
   "flags_removed",
   "removed",

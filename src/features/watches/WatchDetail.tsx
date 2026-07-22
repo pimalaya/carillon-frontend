@@ -1,6 +1,13 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  BookUser,
+  CheckCircle2,
+  Mail,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/PageHeader";
@@ -40,6 +47,52 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+/** A green summary of what the watcher does for this protocol — the detail-page
+ *  analogue of onboarding's capability checks. CardDAV has no server push, so it
+ *  states plainly that it's polled and at what interval. */
+function Capabilities({
+  isCardDav,
+  pollSecs,
+}: {
+  isCardDav: boolean;
+  pollSecs: number;
+}) {
+  const mins = Math.max(1, Math.round(pollSecs / 60));
+  const caps = isCardDav
+    ? [
+        `No live watcher — CardDAV has no server push, so Carillon polls the addressbook about every ${mins} min.`,
+        "Detects added, changed and removed contacts.",
+        "Content-free: only a resource reference is sent, never card data.",
+      ]
+    : [
+        "Real-time — holds an IMAP IDLE connection and fires the instant the mailbox changes.",
+        "Detects new mail, flag changes and removals (incremental via QRESYNC where the server supports it).",
+        "Content-free: only {account, event, uid} is sent, never message content.",
+      ];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {isCardDav ? (
+            <BookUser className="size-4 text-success" />
+          ) : (
+            <Mail className="size-4 text-success" />
+          )}
+          {isCardDav ? "Contacts watcher · polled" : "Mailbox watcher · real-time"}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {caps.map((cap) => (
+          <div key={cap} className="flex items-start gap-2 text-sm">
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
+            <span>{cap}</span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function WatchDetail({ id }: { id: string }) {
   const navigate = useNavigate();
   const { data: watch, isLoading, isError } = useWatch(id);
@@ -74,6 +127,7 @@ export function WatchDetail({ id }: { id: string }) {
   }
 
   const metered = me?.metered ?? true;
+  const isCardDav = watch.source_kind === "carddav";
   const svc = me?.balance.mailboxes.find((m) => m.watch_id === id);
   const watching = svc?.watching ?? false;
   const autoRenew = svc?.auto_renew ?? false;
@@ -107,11 +161,11 @@ export function WatchDetail({ id }: { id: string }) {
       <PageHeader
         title={
           <span className="flex items-center gap-3">
-            {watch.login}
+            {watch.provider || watch.login}
             <StatusBadge active={watch.active} liveState={watch.liveState} />
           </span>
         }
-        description={`Watching ${watch.mailbox}`}
+        description={`Watching ${isCardDav ? "addressbook" : "folder"} ${watch.mailbox}`}
         action={
           <div className="flex items-center gap-3">
             {runnable && (
@@ -182,22 +236,35 @@ export function WatchDetail({ id }: { id: string }) {
         </Alert>
       )}
 
+      <Capabilities isCardDav={isCardDav} pollSecs={me?.carddav_poll_secs ?? 300} />
+
       <Card>
         <CardHeader>
           <CardTitle>Configuration</CardTitle>
         </CardHeader>
         <CardContent className="divide-y">
+          <Field label="Provider">
+            <span className="text-sm">{watch.provider || "—"}</span>
+          </Field>
           <Field label="Login">
             <span className="text-sm">{watch.login}</span>
           </Field>
-          <Field label="Folder">
+          <Field label={isCardDav ? "Addressbook" : "Folder"}>
             <span className="text-sm">{watch.mailbox}</span>
           </Field>
-          <Field label="IMAP host">
-            <span className="font-mono text-sm">
-              {watch.imap_host}:{watch.imap_port}
-            </span>
-          </Field>
+          {isCardDav && watch.carddav_url ? (
+            <Field label="Collection">
+              <code className="truncate font-mono text-xs">
+                {watch.carddav_url}
+              </code>
+            </Field>
+          ) : (
+            <Field label="IMAP host">
+              <span className="font-mono text-sm">
+                {watch.imap_host}:{watch.imap_port}
+              </span>
+            </Field>
+          )}
           <Field label="Notify URL">
             <div className="flex items-center gap-2">
               <code className="truncate font-mono text-sm">

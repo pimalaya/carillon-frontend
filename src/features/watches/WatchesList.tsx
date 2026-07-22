@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Radio } from "lucide-react";
@@ -44,6 +44,19 @@ function NotWatching() {
 
 const Dash = () => <span className="text-xs text-muted-foreground">—</span>;
 
+/** The provider a service is grouped under: the registrable domain (last two
+ *  labels) of the server host — so a login's mail (imap.…) and contacts
+ *  (carddav.…) hosts collapse to one provider, e.g. `fastmail.com`. Mirrors the
+ *  server's `metering::provider_domain`. */
+function providerDomain(host: string): string {
+  const labels = host
+    .toLowerCase()
+    .replace(/\.+$/, "")
+    .split(".")
+    .filter(Boolean);
+  return labels.length >= 2 ? labels.slice(-2).join(".") : host;
+}
+
 /** One service row: status, its two switches (Active = deliver events;
  *  Auto-renew = keep paying at expiry), and activate/extend + delete. */
 function WatchRow({
@@ -74,15 +87,13 @@ function WatchRow({
       onClick={() => navigate(`/watches/${watch.id}`)}
     >
       <TableCell>
-        <div className="font-medium">{watch.login}</div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span>{watch.mailbox}</span>
-          {watch.source_kind === "carddav" && (
-            <span className="rounded bg-secondary px-1 py-0.5 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground">
-              {t("watches.kindAddressbook")}
-            </span>
-          )}
+        {/* Grouped under the provider header; the row shows the kind + target. */}
+        <div className="text-xs text-muted-foreground">
+          {watch.source_kind === "carddav"
+            ? t("watches.kindAddressbook")
+            : t("watches.kindMailbox")}
         </div>
+        <div className="font-medium">{watch.mailbox}</div>
       </TableCell>
 
       <TableCell>
@@ -206,6 +217,16 @@ export function WatchesList() {
       ? watches
       : watches.filter((w) => w.login.toLowerCase() === filter.toLowerCase());
 
+  // Group services under their provider (the resolved domain, e.g. fastmail.com),
+  // so an account's mail + contacts sit under one header instead of separate
+  // per-login/protocol sections.
+  const cols = metered ? 6 : 4;
+  const groups = new Map<string, typeof shown>();
+  for (const w of shown) {
+    const key = w.provider || providerDomain(w.imap_host);
+    groups.set(key, [...(groups.get(key) ?? []), w]);
+  }
+
   return (
     <div className="space-y-3">
       {/* Filter the shared cross-account view down to one PIM account. */}
@@ -242,13 +263,24 @@ export function WatchesList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {shown.map((watch) => (
-              <WatchRow
-                key={watch.id}
-                watch={watch}
-                svc={svcByWatch.get(watch.id)}
-                metered={metered}
-              />
+            {Array.from(groups.entries()).map(([domain, rows]) => (
+              <Fragment key={domain}>
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={cols} className="pb-3 pt-3 bg-secondary">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold">{domain}</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                {rows.map((watch) => (
+                  <WatchRow
+                    key={watch.id}
+                    watch={watch}
+                    svc={svcByWatch.get(watch.id)}
+                    metered={metered}
+                  />
+                ))}
+              </Fragment>
             ))}
           </TableBody>
         </Table>

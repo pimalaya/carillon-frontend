@@ -8,6 +8,8 @@ import { getActiveLink } from "./auth";
 export interface ApiErrorBody {
   code?: string;
   message?: string;
+  /** The server's error shape is `{ "error": "..." }` (api.rs). */
+  error?: string;
   details?: unknown;
 }
 
@@ -18,7 +20,9 @@ export class ApiError extends Error {
 
   constructor(status: number, body: ApiErrorBody | string) {
     const parsed = typeof body === "string" ? { message: body } : body;
-    super(parsed.message ?? `Request failed (${status})`);
+    super(
+      parsed.message ?? parsed.error ?? `Request failed (${status})`,
+    );
     this.name = "ApiError";
     this.status = status;
     this.code = parsed.code;

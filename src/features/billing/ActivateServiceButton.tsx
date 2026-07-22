@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Hourglass, PlayCircle } from "lucide-react";
+import { CalendarPlus, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ export function ActivateServiceButton({
       >
         {watching ? (
           <>
-            <Hourglass />
+            <CalendarPlus />
             Extend
           </>
         ) : (

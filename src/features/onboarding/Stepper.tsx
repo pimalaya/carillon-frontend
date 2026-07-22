@@ -1,11 +1,11 @@
 import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { STAGES } from "./types";
+import { WIZARD_STAGES } from "./types";
 
 export function Stepper({
   current,
-  stages = STAGES,
+  stages = WIZARD_STAGES,
 }: {
   current: number;
   stages?: readonly string[];

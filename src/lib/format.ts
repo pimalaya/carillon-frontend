@@ -69,6 +69,8 @@ export function eventMeta(event: DeliveryEvent): { label: string; tone: Tone } {
   switch (event) {
     case "new":
       return { label: "New", tone: "success" };
+    case "changed":
+      return { label: "Changed", tone: "default" };
     case "flags_added":
       return { label: "Flags +", tone: "default" };
     case "flags_removed":
