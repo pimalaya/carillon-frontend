@@ -65,6 +65,7 @@ function verdictFromOauth(r: OauthResult): TestVerdict {
     idle: !missing.includes("IDLE"),
     qresync: r.qresync ?? false,
     condstore: r.qresync ?? false,
+    sync: false,
     missing,
     error: null,
   };
@@ -207,6 +208,7 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
           idle: false,
           qresync: false,
           condstore: false,
+          sync: false,
           missing: [],
           error: message,
         },

@@ -1,0 +1,116 @@
+{
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "test": "Test"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "deliveries": "Deliveries",
+    "billing": "Billing",
+    "settings": "Settings",
+    "addAccount": "Add account",
+    "taglineSignal": "Signal, not sync.",
+    "taglineContentFree": "Content-free by design."
+  },
+  "header": {
+    "apiTitle": "API the dashboard is talking to"
+  },
+  "accountSwitcher": {
+    "accounts": "Accounts",
+    "addAccount": "Add account",
+    "signOut": "Sign out"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "description": "Your services and credits at a glance.",
+    "addService": "Add service",
+    "addAccount": "Add account",
+    "services": "Services",
+    "recentDeliveries": "Recent deliveries"
+  },
+  "deliveries": {
+    "title": "Deliveries",
+    "description": "Every webhook Carillon has fired across your services — reference only, never content.",
+    "all": "All",
+    "failures": "Failures"
+  },
+  "billing": {
+    "title": "Billing",
+    "description": "Buy credits in packs of 5; spend 1 to watch a service for a month. Testing is always free."
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Account, member mailboxes, and your capability link."
+  },
+  "watches": {
+    "colTarget": "Account · target",
+    "colStatus": "Status",
+    "colActive": "Active",
+    "colAutoRenew": "Auto-renew",
+    "notWatching": "Not watching",
+    "activateToStart": "activate to start",
+    "until": "until {{date}}",
+    "account": "Account",
+    "allAccounts": "All accounts",
+    "emptyTitle": "No services yet",
+    "emptyDescription": "Add a service to watch a folder or an addressbook on one of your accounts. Carillon fires a signed webhook the instant it changes.",
+    "noneOnAccount": "No services on this account yet.",
+    "resumed": "Resumed — delivering events",
+    "paused": "Paused — no events (paid time keeps running)",
+    "autoRenewOn": "Auto-renew on — renews from your pool",
+    "autoRenewOff": "Auto-renew off — stops when the paid month ends",
+    "activeAria": "Active (deliver events)",
+    "autoRenewAria": "Auto-renew",
+    "kindEmail": "Email",
+    "kindAddressbook": "Addressbook"
+  },
+  "services": {
+    "titleConfigure": "Add a service",
+    "titleVerify": "Verify it works",
+    "titleDone": "You’re all set",
+    "descConfigure": "Pick what to watch and point the signed webhook at your endpoint.",
+    "descVerify": "Watch your own endpoint fire — read-only, no test button.",
+    "descDone": "Activate the service to start watching — 1 credit per month.",
+    "needAccountTitle": "Add an account first",
+    "needAccountBody": "You need an authenticated account before you can watch anything on it.",
+    "type": {
+      "label": "What to watch",
+      "email": "Email folder",
+      "emailHint": "An IMAP mailbox, watched live over IDLE.",
+      "addressbook": "Addressbook",
+      "addressbookHint": "A CardDAV addressbook, polled for changes (WebDAV has no push)."
+    },
+    "account": "Account",
+    "accountHintEmail": "The service watches a folder on this account, reusing its stored credential.",
+    "accountHintAddressbook": "The addressbook is watched with this account’s stored credential.",
+    "folder": "Folder to watch",
+    "folderLoading": "Loading your folders…",
+    "folderError": "Couldn’t list folders — type the folder name to watch.",
+    "folderHint": "One service watches one folder. The inbox is the usual choice.",
+    "carddavUrl": "Addressbook URL",
+    "carddavUrlPlaceholder": "https://carddav.example.com/dav/addressbooks/user/…/Default/",
+    "carddavUrlHint": "The full CardDAV collection URL. WebDAV has no push, so Carillon polls it for sync-token changes.",
+    "carddavName": "Display name",
+    "carddavNamePlaceholder": "Personal",
+    "carddavOk": "Addressbook reachable and watchable.",
+    "carddavNoSync": "Reachable, but this collection reports no sync-token.",
+    "carddavFail": "Could not reach the addressbook — check the URL and the account credential.",
+    "notifyUrl": "Notify URL",
+    "notifyInvalid": "Must be https:// (or http:// on localhost for a local sink).",
+    "endpointOk": "Endpoint acknowledged",
+    "endpointNoAck": "Endpoint did not acknowledge.",
+    "endpointUnreachable": "Could not reach the endpoint.",
+    "tooManyAttempts": "Too many attempts — wait a moment before trying again.",
+    "webhookTitle": "Signed, content-free webhooks",
+    "webhookBodyEmail": "Each change POSTs {account, event, uid} — never message content — signed with HMAC-SHA256. You’ll get the signing secret on the next step.",
+    "webhookBodyAddressbook": "Each change POSTs {account, event, resource} — never contact content — signed with HMAC-SHA256. You’ll get the signing secret on the next step.",
+    "addService": "Add service",
+    "conflictEmail": "A service already watches {{mailbox}} on {{login}}.",
+    "conflictAddressbook": "A service already watches this addressbook on {{login}}.",
+    "addError": "Could not add the service. Please try again."
+  }
+}

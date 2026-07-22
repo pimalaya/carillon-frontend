@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Card,
@@ -26,17 +27,10 @@ import {
   type PimAccountOption,
 } from "./stages/ServiceConfigureStage";
 
-// "Add service" — put a Watch IMAP service on an already-authenticated PIM
-// account, reusing that account's stored credential. Three steps: configure the
-// folder + webhook, verify it fires, done. Distinct from "Add account", which
-// authenticates the PIM account in the first place.
-
-const TITLES = ["Add a service", "Verify it works", "You’re all set"];
-const DESCRIPTIONS = [
-  "Pick a folder to watch and point the signed webhook at your endpoint.",
-  "Watch your own endpoint fire — read-only, no test button.",
-  "Activate the service to start watching — 1 credit per month.",
-];
+// "Add service" — put a service (an IMAP folder or a CardDAV addressbook) on an
+// already-authenticated PIM account, reusing that account's stored credential.
+// Three steps: configure the target + webhook, verify it fires, done. Distinct
+// from "Add account", which authenticates the PIM account in the first place.
 
 /** Build the choosable PIM accounts from /me: memberships carry login + host;
  *  the port is pulled from an existing watch on the same login (else 993, the
@@ -64,8 +58,20 @@ export function ServiceWizard({
   onCancel: () => void;
   onDone: () => void;
 }) {
+  const { t } = useTranslation();
   const { data: me, isLoading } = useMe();
   const options = useMemo(() => (me ? buildOptions(me) : []), [me]);
+
+  const titles = [
+    t("services.titleConfigure"),
+    t("services.titleVerify"),
+    t("services.titleDone"),
+  ];
+  const descriptions = [
+    t("services.descConfigure"),
+    t("services.descVerify"),
+    t("services.descDone"),
+  ];
 
   const [step, setStep] = useState(0);
   const [state, setState] = useState<WizardState>(initialWizardState);
@@ -113,7 +119,7 @@ export function ServiceWizard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Add a service</CardTitle>
+          <CardTitle>{t("services.titleConfigure")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <Skeleton className="h-9 w-full" />
@@ -127,20 +133,14 @@ export function ServiceWizard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Add a service</CardTitle>
-          <CardDescription>
-            A service watches a folder on one of your accounts.
-          </CardDescription>
+          <CardTitle>{t("services.titleConfigure")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
-            <AlertTitle>Add an account first</AlertTitle>
-            <AlertDescription>
-              You need an authenticated account before you can watch a folder on
-              it.
-            </AlertDescription>
+            <AlertTitle>{t("services.needAccountTitle")}</AlertTitle>
+            <AlertDescription>{t("services.needAccountBody")}</AlertDescription>
           </Alert>
-          <Button onClick={onCancel}>Back</Button>
+          <Button onClick={onCancel}>{t("common.back")}</Button>
         </CardContent>
       </Card>
     );
@@ -150,8 +150,8 @@ export function ServiceWizard({
     <Card>
       <CardHeader>
         <Stepper current={step} stages={SERVICE_STAGES} />
-        <CardTitle className="mt-4">{TITLES[step]}</CardTitle>
-        <CardDescription>{DESCRIPTIONS[step]}</CardDescription>
+        <CardTitle className="mt-4">{titles[step]}</CardTitle>
+        <CardDescription>{descriptions[step]}</CardDescription>
       </CardHeader>
       <CardContent>
         {step === 0 && (

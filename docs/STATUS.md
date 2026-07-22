@@ -35,6 +35,21 @@ entry below was reverted; ignore it).
   `/mailboxes`) must be a plain awaited `apiFetch` / `useQuery`, **not** a
   `useMutation` in an effect — the latter desyncs under React StrictMode
   (eternal spinner / empty list).
+- **CardDAV services.** "Add service" now offers a service-type toggle —
+  **Email folder (IMAP)** or **Addressbook (CardDAV)**. The CardDAV branch takes
+  a collection URL + display name, has its own **Test** (`POST /test`
+  `source_kind=carddav`, reusing the account's stored credential via the link),
+  and creates a `source_kind=carddav` watch. The dashboard tags addressbook rows
+  with an **Addressbook** chip. Schemas gained `source_kind` / `carddav_url` /
+  `sync`; `useTestCardDav` added. (Server side: `carillon-server/docs/CARDDAV.md`.)
+- **i18n (react-i18next, en + fr).** `src/i18n/` (config + `locales/en.json` /
+  `fr.json`), browser-language-detected, remembered in `localStorage`
+  (`carillon.lang`), `<html lang>` synced. A header **language switcher**. Wired:
+  the shell (sidebar/nav, account switcher, header), the four page headers, the
+  services list, and the "Add service" wizard. Deeper onboarding wizard strings
+  (Identify / Authenticate / Verify / Commit) and the billing/settings inner
+  cards still hold English literals — extract into the same key structure as they
+  come up.
 
 Remaining: interactive OAuth e2e (real browser consent), production deploy
 (host + CORS/public_url + live keys + Resend domain verification), and deferred

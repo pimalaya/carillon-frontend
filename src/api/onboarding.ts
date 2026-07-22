@@ -50,6 +50,39 @@ export function useTestConnect() {
   });
 }
 
+export interface CardDavTestInput {
+  /** The CardDAV collection URL to probe. */
+  carddav_url: string;
+  /** PIM-account host + login: keys the stored credential the server reuses. */
+  imap_host: string;
+  login: string;
+  /** Capability link — the server resolves the PIM account's stored credential
+   *  (an empty password is sent). */
+  link: string;
+}
+
+/**
+ * POST /test with `source_kind=carddav` — PROPFIND the collection using the PIM
+ * account's stored credential (empty password + the capability link), so "Add
+ * service" can confirm an addressbook is reachable + watchable before creating.
+ */
+export function useTestCardDav() {
+  return useMutation<TestVerdict, Error, CardDavTestInput>({
+    mutationFn: ({ carddav_url, imap_host, login, link }) =>
+      apiFetch<unknown>("/test", {
+        method: "POST",
+        body: {
+          source_kind: "carddav",
+          carddav_url,
+          imap_host,
+          login,
+          password: "",
+        },
+        token: link,
+      }).then((d) => parseOr(testVerdictSchema, d)),
+  });
+}
+
 export interface AuthenticateInput extends AuthRequest {
   /** Send the active link so the server joins this mailbox to that account. */
   associate?: boolean;

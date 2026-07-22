@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Radio } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,13 +28,16 @@ import type { AccountMailbox, Watch } from "@/api/schemas";
 /** The "Not watching" state — a service that exists but has no paid month, so
  *  the supervisor isn't running it. Distinct from a paused watch. */
 function NotWatching() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-0.5">
       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <span className="size-2 rounded-full bg-muted-foreground" />
-        Not watching
+        {t("watches.notWatching")}
       </span>
-      <div className="text-xs text-muted-foreground">activate to start</div>
+      <div className="text-xs text-muted-foreground">
+        {t("watches.activateToStart")}
+      </div>
     </div>
   );
 }
@@ -52,6 +56,7 @@ function WatchRow({
   metered: boolean;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const pause = usePauseWatch();
   const resume = useResumeWatch();
   const setRenew = useSetAutoRenew();
@@ -70,7 +75,14 @@ function WatchRow({
     >
       <TableCell>
         <div className="font-medium">{watch.login}</div>
-        <div className="text-xs text-muted-foreground">{watch.mailbox}</div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span>{watch.mailbox}</span>
+          {watch.source_kind === "carddav" && (
+            <span className="rounded bg-secondary px-1 py-0.5 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground">
+              {t("watches.kindAddressbook")}
+            </span>
+          )}
+        </div>
       </TableCell>
 
       <TableCell>
@@ -81,7 +93,7 @@ function WatchRow({
             <StatusBadge active={watch.active} liveState={watch.liveState} />
             {metered && svc?.watching_until && (
               <div className="text-xs text-muted-foreground">
-                until {formatDate(svc.watching_until)}
+                {t("watches.until", { date: formatDate(svc.watching_until) })}
               </div>
             )}
           </div>
@@ -92,20 +104,16 @@ function WatchRow({
       <TableCell onClick={stop}>
         {runnable ? (
           <Switch
-            aria-label="Active (deliver events)"
+            aria-label={t("watches.activeAria")}
             checked={watch.active}
             disabled={pause.isPending || resume.isPending}
             onCheckedChange={(on) =>
               on
                 ? resume.mutate(watch.id, {
-                    onSuccess: () =>
-                      toast.success("Resumed — delivering events"),
+                    onSuccess: () => toast.success(t("watches.resumed")),
                   })
                 : pause.mutate(watch.id, {
-                    onSuccess: () =>
-                      toast.success(
-                        "Paused — no events (paid time keeps running)",
-                      ),
+                    onSuccess: () => toast.success(t("watches.paused")),
                   })
             }
           />
@@ -118,7 +126,7 @@ function WatchRow({
         <TableCell onClick={stop}>
           {watching ? (
             <Switch
-              aria-label="Auto-renew"
+              aria-label={t("watches.autoRenewAria")}
               checked={autoRenew}
               disabled={setRenew.isPending}
               onCheckedChange={(enabled) =>
@@ -128,8 +136,8 @@ function WatchRow({
                     onSuccess: () =>
                       toast.success(
                         enabled
-                          ? "Auto-renew on — renews from your pool"
-                          : "Auto-renew off — stops when the paid month ends",
+                          ? t("watches.autoRenewOn")
+                          : t("watches.autoRenewOff"),
                       ),
                   },
                 )
@@ -156,6 +164,7 @@ function WatchRow({
 
 export function WatchesList() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { data: me, isLoading } = useMe();
   const [filter, setFilter] = useState("all");
 
@@ -181,10 +190,12 @@ export function WatchesList() {
     return (
       <EmptyState
         icon={<Radio />}
-        title="No services yet"
-        description="Add a service to watch a folder on one of your accounts. Carillon holds IMAP IDLE and fires a signed webhook the instant it changes."
+        title={t("watches.emptyTitle")}
+        description={t("watches.emptyDescription")}
         action={
-          <Button onClick={() => navigate("/services/new")}>Add service</Button>
+          <Button onClick={() => navigate("/services/new")}>
+            {t("dashboard.addService")}
+          </Button>
         }
       />
     );
@@ -200,13 +211,15 @@ export function WatchesList() {
       {/* Filter the shared cross-account view down to one PIM account. */}
       {memberships.length > 1 && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Account</span>
+          <span className="text-xs text-muted-foreground">
+            {t("watches.account")}
+          </span>
           <Select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="h-8 max-w-xs text-xs"
           >
-            <option value="all">All accounts</option>
+            <option value="all">{t("watches.allAccounts")}</option>
             {memberships.map((m) => (
               <option key={m.mailbox_key} value={m.login}>
                 {m.login}
@@ -220,10 +233,10 @@ export function WatchesList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Account · folder</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Active</TableHead>
-              {metered && <TableHead>Auto-renew</TableHead>}
+              <TableHead>{t("watches.colTarget")}</TableHead>
+              <TableHead>{t("watches.colStatus")}</TableHead>
+              <TableHead>{t("watches.colActive")}</TableHead>
+              {metered && <TableHead>{t("watches.colAutoRenew")}</TableHead>}
               {metered && <TableHead className="w-24" />}
               <TableHead className="w-10" />
             </TableRow>
@@ -243,7 +256,7 @@ export function WatchesList() {
 
       {shown.length === 0 && (
         <p className="px-1 text-sm text-muted-foreground">
-          No services on this account yet.
+          {t("watches.noneOnAccount")}
         </p>
       )}
     </div>

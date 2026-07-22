@@ -1,13 +1,16 @@
+import { useTranslation } from "react-i18next";
+
 import { PageHeader } from "@/components/PageHeader";
 import { CreditsCard } from "@/features/billing/CreditsCard";
 import { ServicesCard } from "@/features/billing/ServicesCard";
 
 export function BillingPage() {
+  const { t } = useTranslation();
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Billing"
-        description="Buy credits in packs of 5; spend 1 to watch a service for a month. Testing is always free."
+        title={t("billing.title")}
+        description={t("billing.description")}
       />
       {/* Same shape as the dashboard: services list wide on the left, the credit
           pool card on the right (same size as the dashboard's). */}

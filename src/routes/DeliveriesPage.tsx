@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { PageHeader } from "@/components/PageHeader";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,19 +7,22 @@ import { DeliveriesLog } from "@/features/deliveries/DeliveriesLog";
 
 export function DeliveriesPage() {
   const [tab, setTab] = useState<"all" | "failures">("all");
+  const { t } = useTranslation();
   return (
     <div>
       <PageHeader
-        title="Deliveries"
-        description="Every webhook Carillon has fired across your services — UID only, never content."
+        title={t("deliveries.title")}
+        description={t("deliveries.description")}
         action={
           <Tabs
             value={tab}
             onValueChange={(v) => setTab(v as "all" | "failures")}
           >
             <TabsList>
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="failures">Failures</TabsTrigger>
+              <TabsTrigger value="all">{t("deliveries.all")}</TabsTrigger>
+              <TabsTrigger value="failures">
+                {t("deliveries.failures")}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
         }

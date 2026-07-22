@@ -18,6 +18,11 @@ export interface WizardState {
   /** The PIM account (normalised login) a service is being added to. Set by the
    *  "Add service" flow; unused by "Add account". */
   mailbox_key?: string;
+  /** Which kind of service the "Add service" flow is creating: an email folder
+   *  (IMAP) or an addressbook (CardDAV). Defaults to email. */
+  service_type?: "email" | "addressbook";
+  /** CardDAV collection URL, when `service_type` is `addressbook`. */
+  carddav_url?: string;
   // Configure
   notify_url: string;
   /** Client-generated HMAC secret, sent on create and shown once. */

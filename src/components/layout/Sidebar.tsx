@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   CreditCard,
   LayoutDashboard,
@@ -12,14 +13,15 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/deliveries", label: "Deliveries", icon: Radio, end: false },
-  { to: "/billing", label: "Billing", icon: CreditCard, end: false },
-  { to: "/settings", label: "Settings", icon: Settings, end: false },
-];
+  { to: "/", labelKey: "nav.dashboard", icon: LayoutDashboard, end: true },
+  { to: "/deliveries", labelKey: "nav.deliveries", icon: Radio, end: false },
+  { to: "/billing", labelKey: "nav.billing", icon: CreditCard, end: false },
+  { to: "/settings", labelKey: "nav.settings", icon: Settings, end: false },
+] as const;
 
 export function Sidebar() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r bg-card/40 md:flex">
       <div className="flex h-14 items-center px-4">
@@ -32,11 +34,11 @@ export function Sidebar() {
           onClick={() => navigate("/onboarding")}
         >
           <Plus />
-          Add account
+          {t("nav.addAccount")}
         </Button>
       </div>
       <nav className="mt-4 flex flex-col gap-1 px-3">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {NAV.map(({ to, labelKey, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -51,13 +53,13 @@ export function Sidebar() {
             }
           >
             <Icon className="size-4" />
-            {label}
+            {t(labelKey)}
           </NavLink>
         ))}
       </nav>
       <div className="mt-auto p-3 text-xs text-muted-foreground">
-        <p>Signal, not sync.</p>
-        <p>Content-free by design.</p>
+        <p>{t("nav.taglineSignal")}</p>
+        <p>{t("nav.taglineContentFree")}</p>
       </div>
     </aside>
   );

@@ -1,8 +1,10 @@
 import { Outlet } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 import { Sidebar } from "./Sidebar";
 import { Brand } from "./Brand";
 import { AccountSwitcher } from "./AccountSwitcher";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useStreamStatus } from "./StreamProvider";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { connectionLabel } from "@/lib/config";
@@ -13,6 +15,7 @@ import { connectionLabel } from "@/lib/config";
  */
 export function AppShell() {
   const streamStatus = useStreamStatus();
+  const { t } = useTranslation();
 
   return (
     <div className="flex h-full">
@@ -23,11 +26,12 @@ export function AppShell() {
           <div className="ml-auto flex items-center gap-4">
             <span
               className="hidden font-mono text-xs text-muted-foreground sm:inline"
-              title="API the dashboard is talking to"
+              title={t("header.apiTitle")}
             >
               {connectionLabel()}
             </span>
             <LiveIndicator status={streamStatus} />
+            <LanguageSwitcher />
             <AccountSwitcher />
           </div>
         </header>

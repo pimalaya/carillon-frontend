@@ -203,6 +203,7 @@ function mkWatch(
 ): MockWatch {
   return {
     id,
+    source_kind: "imap",
     imap_host,
     imap_port: 993,
     login,
@@ -314,6 +315,7 @@ export const mockDb = {
 
   createWatch(body: {
     id: string;
+    source_kind?: "imap" | "carddav";
     imap_host: string;
     imap_port?: number;
     login: string;
@@ -322,27 +324,31 @@ export const mockDb = {
     hmac_secret: string;
     account_id?: string;
     active?: boolean;
+    carddav_url?: string;
   }): { status: string; id: string } | "duplicate" {
     const account_id = body.account_id ?? body.id;
     const mailbox = body.mailbox ?? "INBOX";
-    // Dedup a service by (account, login, service-type, target): one Watch IMAP
-    // service per (login, folder) WITHIN an account. A different Carillon account
-    // may watch the same mailbox. Mirrors the server's per-account 409.
+    // Dedup a service by (account, login, target) WITHIN an account: a CardDAV
+    // target is the collection URL, else the mailbox (folder). A different
+    // Carillon account may watch the same target. Mirrors the server's 409.
+    const target = body.carddav_url ?? mailbox;
     const clash = watches.some(
       (w) =>
         w.account_id === account_id &&
         w.login.toLowerCase() === body.login.toLowerCase() &&
-        w.mailbox === mailbox,
+        (w.carddav_url ?? w.mailbox) === target,
     );
     if (clash) return "duplicate";
     const watch: MockWatch = {
       id: body.id,
+      source_kind: body.source_kind ?? "imap",
       imap_host: body.imap_host,
       imap_port: body.imap_port ?? 993,
       login: body.login,
       mailbox,
       notify_url: body.notify_url,
       active: body.active ?? true,
+      carddav_url: body.carddav_url,
       hmac_secret: body.hmac_secret,
       account_id,
       watching_until: null,
@@ -513,6 +519,7 @@ export function mockTestConnect(body: {
     idle: authenticated && caps,
     qresync: authenticated && caps,
     condstore: authenticated && caps,
+    sync: false,
     missing,
     error: !authenticated
       ? "authentication failed"

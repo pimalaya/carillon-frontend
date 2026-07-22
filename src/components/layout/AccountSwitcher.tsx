@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Check, ChevronsUpDown, LogOut, Plus } from "lucide-react";
 
 import {
@@ -19,6 +20,7 @@ import { useMe } from "@/api/me";
  *  the active one; PIM accounts live *under* it (filtered on the dashboard). */
 export function AccountSwitcher() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { accounts, active, setActiveAccount, removeAccount, renameAccount } =
     useAuth();
   const { data: me } = useMe();
@@ -50,7 +52,7 @@ export function AccountSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel>Accounts</DropdownMenuLabel>
+        <DropdownMenuLabel>{t("accountSwitcher.accounts")}</DropdownMenuLabel>
         {accounts.map((acct) => (
           <DropdownMenuItem
             key={acct.id}
@@ -68,11 +70,11 @@ export function AccountSwitcher() {
             browser; elsewhere you sign in again via a magic link. */}
         <DropdownMenuItem onSelect={() => navigate("/welcome")}>
           <Plus />
-          Add account
+          {t("accountSwitcher.addAccount")}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={signOut}>
           <LogOut />
-          Sign out
+          {t("accountSwitcher.signOut")}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

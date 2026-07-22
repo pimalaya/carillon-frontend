@@ -1,0 +1,116 @@
+{
+  "common": {
+    "back": "Retour",
+    "cancel": "Annuler",
+    "test": "Tester"
+  },
+  "language": {
+    "label": "Langue"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "deliveries": "Livraisons",
+    "billing": "Facturation",
+    "settings": "Réglages",
+    "addAccount": "Ajouter un compte",
+    "taglineSignal": "Un signal, pas une synchro.",
+    "taglineContentFree": "Sans contenu par conception."
+  },
+  "header": {
+    "apiTitle": "API à laquelle le tableau de bord est connecté"
+  },
+  "accountSwitcher": {
+    "accounts": "Comptes",
+    "addAccount": "Ajouter un compte",
+    "signOut": "Se déconnecter"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "description": "Vos services et vos crédits en un coup d’œil.",
+    "addService": "Ajouter un service",
+    "addAccount": "Ajouter un compte",
+    "services": "Services",
+    "recentDeliveries": "Livraisons récentes"
+  },
+  "deliveries": {
+    "title": "Livraisons",
+    "description": "Chaque webhook envoyé par Carillon pour vos services — référence seulement, jamais le contenu.",
+    "all": "Toutes",
+    "failures": "Échecs"
+  },
+  "billing": {
+    "title": "Facturation",
+    "description": "Achetez des crédits par lots de 5 ; dépensez-en 1 pour surveiller un service pendant un mois. Les tests sont toujours gratuits."
+  },
+  "settings": {
+    "title": "Réglages",
+    "description": "Compte, boîtes membres et votre lien de capacité."
+  },
+  "watches": {
+    "colTarget": "Compte · cible",
+    "colStatus": "État",
+    "colActive": "Actif",
+    "colAutoRenew": "Renouv. auto",
+    "notWatching": "Inactif",
+    "activateToStart": "activer pour démarrer",
+    "until": "jusqu’au {{date}}",
+    "account": "Compte",
+    "allAccounts": "Tous les comptes",
+    "emptyTitle": "Aucun service pour l’instant",
+    "emptyDescription": "Ajoutez un service pour surveiller un dossier ou un carnet d’adresses sur l’un de vos comptes. Carillon envoie un webhook signé dès qu’il change.",
+    "noneOnAccount": "Aucun service sur ce compte pour l’instant.",
+    "resumed": "Repris — les événements sont livrés",
+    "paused": "En pause — aucun événement (le temps payé continue de courir)",
+    "autoRenewOn": "Renouvellement auto activé — puise dans votre réserve",
+    "autoRenewOff": "Renouvellement auto désactivé — s’arrête à la fin du mois payé",
+    "activeAria": "Actif (livrer les événements)",
+    "autoRenewAria": "Renouvellement automatique",
+    "kindEmail": "E-mail",
+    "kindAddressbook": "Carnet d’adresses"
+  },
+  "services": {
+    "titleConfigure": "Ajouter un service",
+    "titleVerify": "Vérifier que ça marche",
+    "titleDone": "Tout est prêt",
+    "descConfigure": "Choisissez quoi surveiller et pointez le webhook signé vers votre point de terminaison.",
+    "descVerify": "Regardez votre propre point de terminaison se déclencher — en lecture seule, sans bouton de test.",
+    "descDone": "Activez le service pour commencer à surveiller — 1 crédit par mois.",
+    "needAccountTitle": "Ajoutez d’abord un compte",
+    "needAccountBody": "Il vous faut un compte authentifié avant de pouvoir surveiller quoi que ce soit dessus.",
+    "type": {
+      "label": "Quoi surveiller",
+      "email": "Dossier e-mail",
+      "emailHint": "Une boîte IMAP, surveillée en direct via IDLE.",
+      "addressbook": "Carnet d’adresses",
+      "addressbookHint": "Un carnet d’adresses CardDAV, interrogé régulièrement (WebDAV n’a pas de push)."
+    },
+    "account": "Compte",
+    "accountHintEmail": "Le service surveille un dossier sur ce compte, en réutilisant son identifiant stocké.",
+    "accountHintAddressbook": "Le carnet d’adresses est surveillé avec l’identifiant stocké de ce compte.",
+    "folder": "Dossier à surveiller",
+    "folderLoading": "Chargement de vos dossiers…",
+    "folderError": "Impossible de lister les dossiers — saisissez le nom du dossier à surveiller.",
+    "folderHint": "Un service surveille un dossier. La boîte de réception est le choix habituel.",
+    "carddavUrl": "URL du carnet d’adresses",
+    "carddavUrlPlaceholder": "https://carddav.exemple.com/dav/addressbooks/user/…/Default/",
+    "carddavUrlHint": "L’URL complète de la collection CardDAV. WebDAV n’a pas de push, alors Carillon l’interroge pour détecter les changements de jeton de synchronisation.",
+    "carddavName": "Nom affiché",
+    "carddavNamePlaceholder": "Personnel",
+    "carddavOk": "Carnet d’adresses accessible et surveillable.",
+    "carddavNoSync": "Accessible, mais cette collection ne renvoie aucun jeton de synchronisation.",
+    "carddavFail": "Impossible d’atteindre le carnet d’adresses — vérifiez l’URL et l’identifiant du compte.",
+    "notifyUrl": "URL de notification",
+    "notifyInvalid": "Doit être en https:// (ou http:// sur localhost pour un point local).",
+    "endpointOk": "Point de terminaison confirmé",
+    "endpointNoAck": "Le point de terminaison n’a pas répondu.",
+    "endpointUnreachable": "Impossible de joindre le point de terminaison.",
+    "tooManyAttempts": "Trop de tentatives — patientez un instant avant de réessayer.",
+    "webhookTitle": "Webhooks signés, sans contenu",
+    "webhookBodyEmail": "Chaque changement envoie {account, event, uid} — jamais le contenu du message — signé en HMAC-SHA256. Vous recevrez la clé de signature à l’étape suivante.",
+    "webhookBodyAddressbook": "Chaque changement envoie {account, event, resource} — jamais le contenu du contact — signé en HMAC-SHA256. Vous recevrez la clé de signature à l’étape suivante.",
+    "addService": "Ajouter le service",
+    "conflictEmail": "Un service surveille déjà {{mailbox}} sur {{login}}.",
+    "conflictAddressbook": "Un service surveille déjà ce carnet d’adresses sur {{login}}.",
+    "addError": "Impossible d’ajouter le service. Veuillez réessayer."
+  }
+}

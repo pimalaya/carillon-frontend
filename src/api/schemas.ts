@@ -14,12 +14,17 @@ import { z } from "zod";
 /** A watch's REST view — never the password or HMAC secret. (WatchView) */
 export const watchViewSchema = z.object({
   id: z.string(),
+  /** Source protocol: `imap` (a mailbox, held IDLE) or `carddav` (a polled
+   *  addressbook). Defaults to `imap` for older servers. */
+  source_kind: z.enum(["imap", "carddav"]).default("imap"),
   imap_host: z.string(),
   imap_port: z.number(),
   login: z.string(),
   mailbox: z.string(),
   notify_url: z.string(),
   active: z.boolean(),
+  /** CardDAV collection URL; absent for IMAP. */
+  carddav_url: z.string().optional(),
 });
 export type WatchView = z.infer<typeof watchViewSchema>;
 
@@ -52,17 +57,23 @@ export type Watch = WatchView & {
  */
 export interface CreateWatchRequest {
   id: string;
+  /** `imap` (default) or `carddav`. For `carddav`, `imap_host`/`login` carry
+   *  the PIM-account identity and `carddav_url` is the polled collection. */
+  source_kind?: "imap" | "carddav";
   imap_host: string;
   imap_port: number;
   login: string;
   /** Omitted for an OAuth watch — the server uses the mailbox's stored OAuth
    *  credential (proved via /oauth/callback) instead. */
   password?: string;
+  /** IMAP folder, or a display name for a CardDAV addressbook. */
   mailbox: string;
   notify_url: string;
   hmac_secret: string;
   account_id?: string;
   active?: boolean;
+  /** CardDAV collection URL (required when `source_kind` is `carddav`). */
+  carddav_url?: string;
 }
 
 export const createWatchResultSchema = z.object({
@@ -117,16 +128,20 @@ export type DiscoverResponse = z.infer<typeof discoverResponseSchema>;
 // ── Test / onboarding ─────────────────────────────────────────────────────────
 
 export interface TestRequest {
+  source_kind?: "imap" | "carddav";
   imap_host: string;
   imap_port: number;
   login: string;
   password: string;
   mailbox: string;
+  /** CardDAV collection URL (required when `source_kind` is `carddav`). */
+  carddav_url?: string;
 }
 
 /**
- * Verdict from POST /test. `ok` is the green light: reachable AND authenticated
- * AND idle AND qresync — never merely authenticated. (TestVerdict)
+ * Verdict from POST /test. `ok` is the green light: for IMAP, reachable AND
+ * authenticated AND idle; for CardDAV, reachable AND authenticated AND sync.
+ * (TestVerdict)
  */
 export const testVerdictSchema = z.object({
   ok: z.boolean(),
@@ -135,6 +150,8 @@ export const testVerdictSchema = z.object({
   idle: z.boolean(),
   qresync: z.boolean(),
   condstore: z.boolean(),
+  /** CardDAV: the collection reports a change token (sync-token/ctag). */
+  sync: z.boolean().default(false),
   missing: z.array(z.string()).default([]),
   error: z.string().nullable().optional(),
 });
