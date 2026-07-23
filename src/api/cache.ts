@@ -3,8 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./keys";
 import type { MeData, Watch } from "./schemas";
 
-// Shared cache mutators for the /me query (the account's watches + balance).
-// Mutations and the live stream both patch it in place. (PLAN §8)
+// Shared /me cache mutators; both mutations and the live SSE stream patch in place.
 
 export function patchMe(
   qc: QueryClient,
@@ -14,7 +13,7 @@ export function patchMe(
   qc.setQueryData<MeData>(queryKeys.me(link), (old) => (old ? fn(old) : old));
 }
 
-/** Patch a single watch in the /me cache by id (== the SSE `account` field). */
+/** Patch one watch in the /me cache by id (== the SSE `account` field). */
 export function patchMeWatch(
   qc: QueryClient,
   link: string | null,

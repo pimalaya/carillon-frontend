@@ -7,10 +7,9 @@ import { parseOr } from "./parse";
 import { checkoutResponseSchema, type CheckoutResponse } from "./schemas";
 
 /**
- * POST /billing/checkout — buy `packs` packs of credits in one payment
- * (§ BILLING_MODEL: the only refill unit is a 5-credit pack). The server records
- * a pending session and returns the provider checkout URL; the pool is credited
- * later via /billing/webhook (in mock mode it settles immediately).
+ * POST /billing/checkout — buy `packs` 5-credit packs (§ BILLING_MODEL, the only
+ * refill unit). Returns the provider checkout URL; the pool is credited later via
+ * /billing/webhook (mock mode settles immediately).
  */
 export function useCheckout() {
   const { activeLink } = useAuth();

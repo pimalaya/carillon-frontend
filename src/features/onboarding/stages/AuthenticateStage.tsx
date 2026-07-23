@@ -27,7 +27,7 @@ import {
 import type { TestVerdict } from "@/api/schemas";
 import type { StageProps } from "../types";
 
-/** A friendly provider name from the IMAP host, for the OAuth button. */
+/** Derives a provider name from the IMAP host, for the OAuth button. */
 function providerLabel(host: string): string {
   const h = host.toLowerCase();
   if (h.includes("gmail") || h.includes("google")) return "Google";
@@ -37,13 +37,13 @@ function providerLabel(host: string): string {
   return "your provider";
 }
 
-/** Whether the flow may proceed: the mailbox probed as watchable. */
+/** Allows proceeding only once the mailbox probed as watchable. */
 function canContinue(v?: TestVerdict): boolean {
   return !!v?.ok;
 }
 
-/** Synthesises a {@link TestVerdict} from an OAuth callback result, so the
- *  OAuth path shows the same connection panel as the password probe. */
+/** Synthesises a {@link TestVerdict} from an OAuth callback so the OAuth path
+ *  shows the same connection panel as the password probe. */
 function verdictFromOauth(r: OauthResult): TestVerdict {
   const missing = r.missing ?? [];
   return {
@@ -60,16 +60,16 @@ function verdictFromOauth(r: OauthResult): TestVerdict {
 }
 
 export function AuthenticateStage(props: StageProps) {
-  // OAuth choices sign in with the provider; everything else holds a password.
+  // OAuth signs in with the provider; every other method holds a password.
   if (props.state.auth?.kind.startsWith("oauth")) {
     return <OauthAuthenticate {...props} />;
   }
   return <PasswordAuthenticate {...props} />;
 }
 
-/** OAuth sign-in: a popup to the provider; the server keeps the refresh token
- *  (the one credential still stored server-side, keyed to the mailbox) and joins
- *  it to this Carillon account on the callback. No password is held. */
+/** OAuth sign-in via provider popup. The server keeps the refresh token (the one
+ *  credential still stored server-side, keyed to the mailbox) and joins it to
+ *  this Carillon account on the callback. No password is held. */
 function OauthAuthenticate({ state, update, next, back }: StageProps) {
   const { t } = useTranslation();
   const { hasAccount, addAccount } = useAuth();
@@ -99,8 +99,8 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
       });
       const result = await runOauthPopup(authorization_url);
       if (result.ok && result.link) {
-        // Join keeps this under the same Carillon account (matched by accountId);
-        // empty label preserves its email. Refresh /me so the mailbox shows.
+        // Match by accountId to keep this under the same Carillon account; empty
+        // label preserves its email. Refresh /me so the mailbox shows.
         addAccount({
           label: "",
           link: result.link,
@@ -168,10 +168,10 @@ function OauthAuthenticate({ state, update, next, back }: StageProps) {
   );
 }
 
-/** Password sign-in: enter the app password and (for email) prove it watches
- *  over a read-only Test. Nothing is stored server-side here — the password is
- *  held in the wizard and rides through to the service on create (§ v3). For
- *  contacts the credential is checked when we list addressbooks in the next step. */
+/** Password sign-in: enter the app password and, for email, prove it watches via
+ *  a read-only Test. Nothing is stored server-side — the password is held in the
+ *  wizard and rides through to the service on create (§ v3). For contacts the
+ *  credential is checked when listing addressbooks in the next step. */
 function PasswordAuthenticate({ state, update, next, back }: StageProps) {
   const { t } = useTranslation();
   const test = useTestConnect();
@@ -211,8 +211,8 @@ function PasswordAuthenticate({ state, update, next, back }: StageProps) {
   }
 
   const hasCreds = state.login.trim().length > 0 && state.password.length > 0;
-  // Email requires a green Test verdict; contacts proceed on creds (the
-  // addressbook listing in the next step is the credential check).
+  // Email needs a green Test verdict; contacts proceed on creds (the next-step
+  // addressbook listing is the credential check).
   const canProceed = isContacts ? hasCreds : canContinue(state.verdict);
 
   return (
@@ -299,8 +299,8 @@ function Check({ ok, label }: { ok: boolean; label: string }) {
   );
 }
 
-/** The shared connection result panel — the same view for the password probe
- *  and the OAuth return. */
+/** Shared connection-result panel — same view for the password probe and the
+ *  OAuth return. */
 function Verdict({ v }: { v: TestVerdict }) {
   const { t } = useTranslation();
   return (

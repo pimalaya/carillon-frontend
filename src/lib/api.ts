@@ -2,13 +2,12 @@ import { apiUrl } from "./config";
 import { getActiveLink } from "./auth";
 
 // Typed fetch wrapper: prefixes the API base, attaches the active account's
-// capability link as `Authorization: Bearer`, and turns non-2xx responses into
-// a structured ApiError. Every resource module builds on this. (PLAN §4)
+// capability link as Bearer, and turns non-2xx responses into an ApiError.
 
 export interface ApiErrorBody {
   code?: string;
   message?: string;
-  /** The server's error shape is `{ "error": "..." }` (api.rs). */
+  /** Server error shape is `{ "error": "..." }` (api.rs). */
   error?: string;
   details?: unknown;
 }
@@ -41,14 +40,10 @@ export class ApiError extends Error {
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  /** JSON body; serialized automatically. */
   body?: unknown;
-  /** AbortSignal for cancellation (TanStack Query passes one). */
   signal?: AbortSignal;
-  /**
-   * Override the bearer token. Defaults to the active account's link. Pass
-   * `null` to send no Authorization header (e.g. minting the first link).
-   */
+  /** Override the bearer token; defaults to the active account's link. Pass
+   *  `null` to send no Authorization header (e.g. minting the first link). */
   token?: string | null;
   query?: Record<string, string | number | boolean | undefined | null>;
 }

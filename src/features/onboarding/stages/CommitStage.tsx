@@ -17,12 +17,10 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** "Add service" final step (§ SERVICE_MODEL v3): the service is created and
- *  already watching on a free trial — no "activate" step here. We just confirm
- *  it, show when the free trial ends, and point at buying credits to keep it
- *  going (1 credit = a full, cumulative month, activated later from the
- *  dashboard). A re-added mailbox whose trial was already used shows the
- *  buy-credits path instead. */
+/** "Add service" final step (§ SERVICE_MODEL v3): the service is already created
+ *  and watching on a free trial — no "activate" step here. Confirms it, shows
+ *  when the trial ends, and points at buying credits. A re-added mailbox whose
+ *  trial was already used shows the buy-credits path instead. */
 export function CommitStage({ state }: StageProps) {
   const navigate = useNavigate();
   const { data: me } = useMe();

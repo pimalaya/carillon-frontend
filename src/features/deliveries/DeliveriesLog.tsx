@@ -40,8 +40,7 @@ export function DeliveriesLog({
 
   const watchLabel = useMemo(() => {
     const map = new Map<string, string>();
-    // Label by the provider domain (not the login/email — which doesn't exist
-    // for an OAuth service) plus the target.
+    // Label by provider domain + target, not login/email (absent for OAuth).
     for (const w of watches ?? [])
       map.set(w.id, `${w.provider || w.imap_host} · ${w.mailbox}`);
     return map;

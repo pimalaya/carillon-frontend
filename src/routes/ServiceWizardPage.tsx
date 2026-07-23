@@ -2,9 +2,8 @@ import { useNavigate } from "react-router-dom";
 
 import { ServiceWizard } from "@/features/services/ServiceWizard";
 
-/** "Add service" — the single flow to add a watch (email folder or CardDAV
- *  addressbook). Renders inside the app shell (requires a capability link). The
- *  credential is collected in the flow and stored on the service. */
+/** Hosts the add-service flow; the credential collected here is stored on the
+ *  service. Renders inside the app shell (requires a capability link). */
 export function ServiceWizardPage() {
   const navigate = useNavigate();
 

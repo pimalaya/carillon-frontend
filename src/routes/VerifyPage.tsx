@@ -9,19 +9,17 @@ import { parseOr } from "@/api/parse";
 import { magicVerifyResultSchema } from "@/api/schemas";
 import { useAuth } from "@/lib/auth";
 
-/** How long to wait for the verify request before treating it as unreachable.
- *  A magic-link exchange is a tiny call — if it hasn't answered by now, the
- *  dashboard can't reach the API (wrong base URL, server down, or CORS). */
+/** A magic-link exchange is tiny; exceeding this means the API is unreachable
+ *  (wrong base URL, server down, or CORS). */
 const VERIFY_TIMEOUT_MS = 15_000;
 
 /**
- * Where the emailed magic link lands. Exchanges the token for a capability
- * link, stores it, and drops into the app. (§ BILLING_MODEL magic-link flow)
+ * Exchanges the emailed magic-link token for a capability link, stores it, and
+ * enters the app. (§ BILLING_MODEL magic-link flow)
  *
- * The exchange is a plain awaited `apiFetch`, not a React Query mutation: it's a
- * single-use, fire-once call, and driving it through a mutation observer made it
- * hang under StrictMode (the observer that ran to completion wasn't the one the
- * component read). Direct await + local state is immune to that.
+ * Uses a plain awaited `apiFetch`, not a React Query mutation: a mutation
+ * observer hung this fire-once call under StrictMode (the observer that ran to
+ * completion wasn't the one the component read).
  */
 export function VerifyPage() {
   const [params] = useSearchParams();
@@ -40,7 +38,6 @@ export function VerifyPage() {
       setBusy(false);
       return;
     }
-    // Bound the request so an unreachable API can't spin forever.
     const controller = new AbortController();
     const timer = window.setTimeout(
       () => controller.abort(),
@@ -54,8 +51,8 @@ export function VerifyPage() {
         signal: controller.signal,
       });
       const result = parseOr(magicVerifyResultSchema, data);
-      // Label is a placeholder — the switcher syncs it to the Carillon account's
-      // email once /me loads. accountId ties this link to that account.
+      // Placeholder label; the switcher syncs it to the account email once /me
+      // loads. accountId ties this link to that account.
       addAccount({
         label: "my account",
         link: result.link,
@@ -63,8 +60,7 @@ export function VerifyPage() {
       });
       navigate("/", { replace: true });
     } catch (err) {
-      // Tell a genuinely bad/expired token apart from "couldn't reach the
-      // server" (network failure / timeout).
+      // Distinguish a bad/expired token (401) from an unreachable server.
       setError(
         err instanceof ApiError && err.status === 401
           ? "This sign-in link is invalid or has expired."

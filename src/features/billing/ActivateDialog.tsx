@@ -16,11 +16,8 @@ import { useActivateWatch, useSetAutoRenew } from "@/api/watches";
 import { formatDate } from "@/lib/format";
 
 /**
- * The confirm-and-spend dialog for activating (starting) or extending a service.
- * Controlled by the caller so it can be opened from a button, a menu item, etc.
- * Explicit about cost: pick how many credits (= months, cumulative), see the
- * pool before/after, then confirm. Activating a stopped service also turns on
- * auto-renew (the merged lifecycle switch).
+ * Confirm-and-spend dialog to activate or extend a service. Credits = months,
+ * cumulative. Activating a stopped service also turns on auto-renew.
  */
 export function ActivateDialog({
   open,

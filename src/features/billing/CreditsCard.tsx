@@ -16,8 +16,8 @@ import { useCheckout } from "@/api/billing";
 import { PACK_SIZE, CREDIT_PRICE_EUR } from "@/api/schemas";
 import { config } from "@/lib/config";
 
-/** The credit pool: current balance + a "buy N packs" control. A pack is the
- *  only refill unit (§ BILLING_MODEL). */
+/** Credit pool: balance + a "buy N packs" control. A pack is the only refill
+ *  unit (§ BILLING_MODEL). */
 export function CreditsCard() {
   const { data: me, isLoading } = useMe();
   const checkout = useCheckout();
@@ -37,7 +37,7 @@ export function CreditsCard() {
     );
   }
 
-  // Self-host / unmetered: credits don't apply — services just run.
+  // Skip credits when unmetered (self-host): services just run.
   if (!me.metered) {
     return (
       <Card>
@@ -56,8 +56,8 @@ export function CreditsCard() {
   function buy() {
     checkout.mutate(packs, {
       onSuccess: (session) => {
-        // A real provider redirects to hosted Checkout; the webhook credits the
-        // pool. The mock settles immediately.
+        // A real provider redirects to hosted Checkout (webhook credits the
+        // pool); the mock settles immediately.
         if (!config.mocksEnabled && session.checkout_url) {
           window.location.href = session.checkout_url;
           return;

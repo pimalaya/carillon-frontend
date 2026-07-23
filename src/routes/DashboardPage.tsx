@@ -17,8 +17,8 @@ export function DashboardPage() {
         title={t("dashboard.title")}
         description={t("dashboard.description")}
         action={
-          // One entry point: "Add service" starts the flow (which connects a new
-          // account when needed). Adding a Carillon account lives in the switcher.
+          // Single entry point: "Add service" runs the flow that connects an
+          // account when needed; adding a Carillon account lives in the switcher.
           <Button onClick={() => navigate("/services/new")}>
             <Plus />
             {t("dashboard.addService")}

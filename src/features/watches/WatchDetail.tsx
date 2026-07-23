@@ -47,9 +47,8 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** A green summary of what the watcher does for this protocol — the detail-page
- *  analogue of onboarding's capability checks. CardDAV has no server push, so it
- *  states plainly that it's polled and at what interval. */
+/** Summary of what the watcher does for this protocol. CardDAV has no server
+ *  push, so it states that it's polled and at what interval. */
 function Capabilities({
   isCardDav,
   pollSecs,
@@ -101,7 +100,7 @@ export function WatchDetail({ id }: { id: string }) {
   const resume = useResumeWatch();
   const setRenew = useSetAutoRenew();
   const rotate = useRotateSecret();
-  // The server only returns a secret at rotation; reveal it once here.
+  // The server returns a secret only at rotation; reveal it once here.
   const [revealed, setRevealed] = useState<string | null>(null);
 
   if (isLoading) {
@@ -131,7 +130,7 @@ export function WatchDetail({ id }: { id: string }) {
   const svc = me?.balance.mailboxes.find((m) => m.watch_id === id);
   const watching = svc?.watching ?? false;
   const autoRenew = svc?.auto_renew ?? false;
-  // Pause/resume matters while the service can run: paid (metered) or self-host.
+  // Pause/resume only applies while the service can run: paid or self-host.
   const runnable = !metered || watching;
 
   function doRotate() {

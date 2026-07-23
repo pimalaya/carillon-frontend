@@ -4,9 +4,8 @@ import type { StreamHandlers } from "@/lib/sse";
 import { mockDb } from "./db";
 
 // Synthetic SSE generator standing in for carillon-backend's GET /events. Emits
-// content-free `delivery` and `status` events (matching live.rs shapes) for the
-// active watches, so the "live log firing" moment works fully offline. Global,
-// like the real stream. (PLAN §6.1, §8)
+// `delivery` and `status` events (matching live.rs shapes) for active watches,
+// so the "live log firing" moment works offline.
 
 const EVENTS: DeliveryEvent[] = [
   "new",
@@ -21,7 +20,6 @@ export function startMockStream(handlers: StreamHandlers): () => void {
   handlers.onStatus?.("connecting");
   const open = setTimeout(() => {
     handlers.onStatus?.("live");
-    // Announce each active watch as watching.
     for (const id of mockDb.activeWatchIds()) {
       handlers.onEvent({
         type: "status",
@@ -39,7 +37,7 @@ export function startMockStream(handlers: StreamHandlers): () => void {
       if (active.length === 0) return;
       const id = active[Math.floor(Math.random() * active.length)];
 
-      // Every so often, flap a watch's status to exercise the live indicator.
+      // Occasionally flap a watch's status to exercise the live indicator.
       if (Math.random() < 0.12) {
         const state: WatchState =
           Math.random() < 0.5 ? "reconnecting" : "watching";

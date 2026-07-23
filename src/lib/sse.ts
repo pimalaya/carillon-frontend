@@ -4,14 +4,11 @@ import { apiUrl, config } from "./config";
 import { getActiveLink, useAuth } from "./auth";
 import { streamEventSchema, type StreamEvent } from "@/api/schemas";
 
-// Live stream: carillon-backend's GET /events is a content-free SSE feed of
-// named events — `delivery`, `status`, `notice` (plus `lagged`) — each data
-// payload a JSON object tagged with `type`. It is **authenticated and scoped**:
-// the server validates the account's capability link and forwards only that
-// account's events (server-side, live.rs / D§5). Browsers' native EventSource
-// cannot set an Authorization header, so we read /events as a fetch stream and
-// parse the SSE frames ourselves, carrying the Bearer link. In mock mode a
-// synthetic generator stands in so the "live log firing" moment works offline.
+// carillon-backend's GET /events (live.rs, D§5) is an authenticated, per-account
+// SSE feed of named events (`delivery`, `status`, `notice`, plus `lagged`).
+// Native EventSource cannot set an Authorization header, so we read /events as a
+// fetch stream and parse SSE frames ourselves, carrying the Bearer link. In mock
+// mode a synthetic generator stands in offline.
 
 export type StreamStatus = "idle" | "connecting" | "live" | "stale";
 
@@ -20,22 +17,18 @@ export interface StreamHandlers {
   onStatus?: (status: StreamStatus) => void;
 }
 
-// The named events we render; anything else (`lagged`, keep-alive comments) is
-// ignored rather than surfaced.
+// Named events we render; anything else (`lagged`, keep-alives) is ignored.
 const NAMED_EVENTS = new Set(["delivery", "status", "notice"]);
-// Reconnect backoff ceiling: 0.5s · 2^(n-1), capped so a dead server is retried
-// at most every ~16s.
+// Backoff ceiling: 0.5s · 2^(n-1), capped so a dead server is retried at ~16s.
 const MAX_RETRY_STEP = 6;
 
-/**
- * Open the event stream. Returns a cleanup function. Chooses the synthetic mock
- * stream or a real authenticated fetch stream based on config.
- */
+/** Open the event stream, returning a cleanup function. Chooses the mock stream
+ *  or a real authenticated fetch stream based on config. */
 export function openEventStream(handlers: StreamHandlers): () => void {
   if (config.mocksEnabled) {
     let cancelled = false;
     let dispose: (() => void) | undefined;
-    // Dev-only; loaded lazily so it tree-shakes out of a production build.
+    // Loaded lazily so it tree-shakes out of a production build.
     import("@/mocks/events").then(({ startMockStream }) => {
       if (cancelled) return;
       dispose = startMockStream(handlers);
@@ -85,7 +78,7 @@ export function openEventStream(handlers: StreamHandlers): () => void {
           buffer = buffer.slice(sep + 2);
         }
       }
-      // A clean end still means we lost the live feed: fall through to retry.
+      // A clean end still means we lost the feed; fall through to retry.
       throw new Error("stream ended");
     } catch {
       if (closed || controller.signal.aborted) return;
@@ -130,11 +123,9 @@ function safeParse(data: string): unknown {
   }
 }
 
-/**
- * React binding: subscribe while `enabled` (and an account is active), exposing
- * the connection status. Re-subscribes when the active account (its link)
- * changes, so the stream is always scoped to what's on screen.
- */
+/** React binding: subscribe while `enabled` and an account is active. Re-
+ *  subscribes when the active link changes, keeping the stream scoped to the
+ *  account on screen. */
 export function useEventStream(
   enabled: boolean,
   onEvent: (event: StreamEvent) => void,

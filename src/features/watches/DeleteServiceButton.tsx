@@ -14,7 +14,7 @@ import {
 import { useDeleteWatch } from "@/api/watches";
 import type { Watch } from "@/api/schemas";
 
-/** A trash button + confirm dialog to delete a service, inline (no menu). */
+/** Trash button + confirm dialog to delete a service inline. */
 export function DeleteServiceButton({
   watch,
   onDeleted,

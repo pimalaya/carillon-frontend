@@ -1,20 +1,17 @@
 import { z } from "zod";
 
-// Typed API boundary — mirrors carillon-backend's OpenAPI contract
-// (carillon-backend/docs/openapi.yaml) field-for-field. Wire fields are
-// snake_case; timestamps are unix seconds. Kept snake_case on purpose so
-// there's no lossy transform between the wire and the UI — what the server
-// sends is what we render.
+// Typed API boundary — mirrors carillon-backend/docs/openapi.yaml field-for-field.
+// Wire fields are snake_case, timestamps unix seconds; kept snake_case so there's
+// no lossy transform between wire and UI.
 //
 // Invariant: nothing here carries message content. Events are {account, event,
-// uid} only — no sender, subject, or body. (DECISIONS §1, §4)
+// uid} only — no sender, subject, or body.
 
 /**
- * Free-credit outcome when the account earns its welcome credit (its first
- * service, § SERVICE_MODEL v3): the credit was `granted`, the account had
- * `already_credited` used its one credit, or this mailbox's credit was
- * `already_claimed` by another Carillon account (the sybil barrier — the mailbox
- * can still be watched, just without a free credit).
+ * Free-credit outcome on the account's first service (§ v3): `granted`,
+ * `already_credited` (account already used its one credit), or `already_claimed`
+ * (this mailbox's credit was taken by another account — the sybil barrier; the
+ * mailbox is still watchable, just without a free credit).
  */
 export const freeCreditSchema = z.enum([
   "granted",
@@ -23,9 +20,7 @@ export const freeCreditSchema = z.enum([
 ]);
 export type FreeCredit = z.infer<typeof freeCreditSchema>;
 
-// ── Watches ───────────────────────────────────────────────────────────────────
-
-/** A watch's REST view — never the password or HMAC secret. (WatchView) */
+/** A watch's REST view — never the password or HMAC secret. */
 export const watchViewSchema = z.object({
   id: z.string(),
   /** Source protocol: `imap` (a mailbox, held IDLE) or `carddav` (a polled
@@ -45,10 +40,8 @@ export const watchViewSchema = z.object({
 });
 export type WatchView = z.infer<typeof watchViewSchema>;
 
-/**
- * Live connection state, delivered over SSE `status` events (not the REST
- * view, which only exposes `active`). (live.rs WatchState)
- */
+/** Live connection state from SSE `status` events (the REST view only exposes
+ *  `active`). */
 export const watchStateSchema = z.enum([
   "watching",
   "reconnecting",
@@ -68,9 +61,9 @@ export type Watch = WatchView & {
 };
 
 /**
- * Body of POST /watches. The client supplies both the watch `id` and the
- * `hmac_secret` (so it can show the secret to the user once). `account_id`
- * joins the watch to a shared billing account; omit for a per-watch account.
+ * Body of POST /watches. The client supplies the watch `id` and `hmac_secret`
+ * (so it can show the secret once). `account_id` joins a shared billing account;
+ * omit for a per-watch account.
  */
 export interface CreateWatchRequest {
   id: string;
@@ -113,12 +106,8 @@ export const rotateResultSchema = z.object({
 });
 export type RotateResult = z.infer<typeof rotateResultSchema>;
 
-// ── Discovery (email/server → IMAP config, D§2) ────────────────────────────────
-
-/**
- * A discovered auth method. `kind` discriminates; OAuth variants carry the
- * endpoints where known. Surfaced now; OAuth login is wired later. (AuthMethod)
- */
+/** A discovered auth method; `kind` discriminates, OAuth variants carry endpoints
+ *  where known. */
 export const authMethodSchema = z.object({
   kind: z.enum(["password", "bearer", "oauth", "oauth_device", "oauth_issuer"]),
   authorization_endpoint: z.string().optional(),
@@ -129,11 +118,8 @@ export const authMethodSchema = z.object({
 });
 export type AuthMethod = z.infer<typeof authMethodSchema>;
 
-/**
- * One onboarding choice — a server endpoint + a single auth method, grouped
- * across discovery mechanisms (the mechanism is not exposed). A hint the wizard
- * confirms. (ImapChoice)
- */
+/** One onboarding choice — a server endpoint + a single auth method, grouped
+ *  across discovery mechanisms; a hint the wizard confirms. */
 export const imapChoiceSchema = z.object({
   host: z.string(),
   port: z.number(),
@@ -142,8 +128,8 @@ export const imapChoiceSchema = z.object({
 });
 export type ImapChoice = z.infer<typeof imapChoiceSchema>;
 
-/** One contacts (CardDAV) onboarding choice — a discovered context-root URL +
- *  how to authenticate. No host/port (CardDAV is HTTP). (CardDavChoice) */
+/** One contacts (CardDAV) onboarding choice — a context-root URL + how to
+ *  authenticate. No host/port (CardDAV is HTTP). */
 export const cardDavChoiceSchema = z.object({
   url: z.string(),
   auth: authMethodSchema,
@@ -165,8 +151,6 @@ export const discoverResponseSchema = z.object({
 });
 export type DiscoverResponse = z.infer<typeof discoverResponseSchema>;
 
-// ── Test / onboarding ─────────────────────────────────────────────────────────
-
 export interface TestRequest {
   source_kind?: "imap" | "carddav";
   imap_host: string;
@@ -179,9 +163,8 @@ export interface TestRequest {
 }
 
 /**
- * Verdict from POST /test. `ok` is the green light: for IMAP, reachable AND
- * authenticated AND idle; for CardDAV, reachable AND authenticated AND sync.
- * (TestVerdict)
+ * Verdict from POST /test. `ok` = the green light: IMAP needs reachable +
+ * authenticated + idle; CardDAV needs reachable + authenticated + sync.
  */
 export const testVerdictSchema = z.object({
   ok: z.boolean(),
@@ -196,8 +179,6 @@ export const testVerdictSchema = z.object({
   error: z.string().nullable().optional(),
 });
 export type TestVerdict = z.infer<typeof testVerdictSchema>;
-
-// ── Mailboxes (folder picker, POST /mailboxes) ─────────────────────────────────
 
 /** One selectable mailbox with its special-use role, if the server flags one. */
 export const mailboxEntrySchema = z.object({
@@ -223,8 +204,6 @@ export const addressbooksResponseSchema = z.object({
 });
 export type AddressbooksResponse = z.infer<typeof addressbooksResponseSchema>;
 
-// ── Webhook test (POST /webhook/test) ──────────────────────────────────────────
-
 /** Result of a one-shot test POST: did the endpoint ack, with which status. */
 export const webhookTestResultSchema = z.object({
   ok: z.boolean(),
@@ -232,8 +211,6 @@ export const webhookTestResultSchema = z.object({
   error: z.string().nullable().optional(),
 });
 export type WebhookTestResult = z.infer<typeof webhookTestResultSchema>;
-
-// ── Identity (login-less accounts, D§5) ───────────────────────────────────────
 
 export interface AuthRequest {
   /** `imap` (default) or `carddav`. Selects how the credential is validated
@@ -249,9 +226,9 @@ export interface AuthRequest {
 }
 
 /**
- * Result of POST /auth. First auth `created` an account, a re-auth `recovered`
- * (re-minted) its link, an auth carrying a valid link `joined` the mailbox to
- * that account. `link` is the capability bearer — store it. (AuthResult)
+ * Result of POST /auth: `created` a new account, `recovered` (re-minted) its
+ * link, or `joined` a mailbox to the link's account. `link` is the capability
+ * bearer — store it.
  */
 export const authResultSchema = z.object({
   account_id: z.string(),
@@ -265,16 +242,14 @@ export const authResultSchema = z.object({
 });
 export type AuthResult = z.infer<typeof authResultSchema>;
 
-// ── Account & credit pool (per-service, § BILLING_MODEL) ──────────────────────
-
 /** Credits per pack — the only refill unit. Mirrors billing.rs PACK_SIZE. */
 export const PACK_SIZE = 5;
 
-/** Per-credit price in EUR, for display only. The real charge is the Stripe
- *  Price object; this just labels the UI (1 credit = one service-month). */
+/** Per-credit price in EUR, display only; the real charge is the Stripe Price
+ *  object (1 credit = one service-month). */
 export const CREDIT_PRICE_EUR = 2;
 
-/** A service (or proven-but-unwatched mailbox) within an account view, with its
+/** A service (or proven-but-unwatched mailbox) in an account view, with its
  *  per-service activation state. */
 export const accountMailboxSchema = z.object({
   mailbox_key: z.string(),
@@ -291,8 +266,8 @@ export const accountMailboxSchema = z.object({
 });
 export type AccountMailbox = z.infer<typeof accountMailboxSchema>;
 
-/** Public view of a Carillon account: the prepaid credit pool and each service's
- *  activation state. 1 credit = one service-month. (AccountView) */
+/** Public view of a Carillon account: the prepaid credit pool + each service's
+ *  activation state. 1 credit = one service-month. */
 export const accountViewSchema = z.object({
   id: z.string(),
   /** Magic-link email identity, if any. */
@@ -330,14 +305,9 @@ export const meSchema = z.object({
 });
 export type Me = z.infer<typeof meSchema>;
 
-/**
- * Client-side shape of /me: the same data, but `watches` carry the live overlay
- * (liveState/lastEventAt) the SSE stream patches into the cache. This is what
- * the UI reads.
- */
+/** Client-side shape of /me: `watches` carry the SSE live overlay
+ *  (liveState/lastEventAt) the stream patches in. This is what the UI reads. */
 export type MeData = Omit<Me, "watches"> & { watches: Watch[] };
-
-// ── Deliveries ────────────────────────────────────────────────────────────────
 
 export const deliveryEventSchema = z.enum([
   "new",
@@ -360,15 +330,12 @@ export const deliverySchema = z.object({
   status: z.number().nullable().optional(),
   error: z.string().nullable().optional(),
   attempts: z.number(),
-  /** Unix seconds. */
   at: z.number(),
 });
 export type Delivery = z.infer<typeof deliverySchema>;
 
-// ── Billing (credit packs) ────────────────────────────────────────────────────
-
-/** Result of POST /billing/checkout — a pending session + the provider checkout
- *  URL. The pool is credited on the verified webhook (mock settles immediately). */
+/** Result of POST /billing/checkout — a pending session + provider checkout URL.
+ *  The pool is credited on the verified webhook (mock settles immediately). */
 export const checkoutResponseSchema = z.object({
   provider: z.string(),
   session_id: z.string(),
@@ -387,8 +354,6 @@ export const activateResultSchema = z.object({
 });
 export type ActivateResult = z.infer<typeof activateResultSchema>;
 
-// ── Magic-link sign-in ────────────────────────────────────────────────────────
-
 /** Result of POST /auth/magic/verify — the account and its capability link. */
 export const magicVerifyResultSchema = z.object({
   account_id: z.string(),
@@ -396,10 +361,8 @@ export const magicVerifyResultSchema = z.object({
 });
 export type MagicVerifyResult = z.infer<typeof magicVerifyResultSchema>;
 
-// ── SSE stream (named events: `delivery`, `status`, `notice`) ──────────────────
-//
-// Each event's data JSON carries a `type` tag matching its event name.
-// Content-free, like everything else. (live.rs LiveEvent)
+// SSE named events (`delivery`, `status`, `notice`): each event's data JSON
+// carries a `type` tag matching its event name. Content-free, like everything else.
 
 export const noticeKindSchema = z.enum([
   "watch_ending",

@@ -18,12 +18,9 @@ const toneToText: Record<Tone, string> = {
   muted: "text-muted-foreground",
 };
 
-/**
- * A watch's status from its REST `active` flag plus any live SSE state,
- * rendered exactly like the header's live indicator: a state-coloured dot
- * (green when active) plus a label — no filled chip. REST only knows
- * active/paused; the connection detail arrives over the stream.
- */
+/** Renders a watch's status from its REST `active` flag plus any live SSE
+ *  state. REST only knows active/paused; the connection detail arrives over the
+ *  stream. */
 export function StatusBadge({
   active,
   liveState,

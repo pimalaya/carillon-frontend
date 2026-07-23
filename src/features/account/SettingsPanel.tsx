@@ -44,7 +44,6 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Account label */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Account name</CardTitle>
@@ -75,7 +74,6 @@ export function SettingsPanel() {
         </CardContent>
       </Card>
 
-      {/* Capability link */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -105,7 +103,6 @@ export function SettingsPanel() {
         </CardContent>
       </Card>
 
-      {/* Docs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -135,7 +132,6 @@ export function SettingsPanel() {
         </CardContent>
       </Card>
 
-      {/* Sign out */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Sign out</CardTitle>

@@ -2,29 +2,21 @@ import { useSyncExternalStore } from "react";
 
 import { shortId } from "./utils";
 
-// ── Login-less accounts (D§5) ────────────────────────────────────────────────
-//
-// There is no login screen. Access to an account is a *capability link* — an
-// unguessable bearer token minted by the server on first mailbox auth. The
-// client holds a list of these links (one per account it knows) in
-// localStorage; the "active" one drives every API call and every query key.
-//
-// The server is the real gate: every protected call carries the Bearer link and
-// the server validates it. This store only decides what the UI renders and
-// which link to send.
+// Login-less accounts (D§5): access to an account is a capability link — an
+// unguessable bearer token minted by the server on first mailbox auth, held in
+// localStorage. The server is the real gate; this store only decides what the
+// UI renders and which link to send.
 
 export interface StoredAccount {
-  /** Client-side id (not the server account id; purely for local bookkeeping). */
+  /** Client-side id, not the server account id. */
   id: string;
-  /** The server's Carillon account id, when known. Identity across link
-   *  rotations: a re-auth/join can mint a NEW capability link for the SAME
-   *  account, so we match on this to avoid duplicate entries. */
+  /** Server Carillon account id, when known. Stable identity across link
+   *  rotations (re-auth/join mints a new link for the same account), so we
+   *  match on this to avoid duplicate entries. */
   accountId?: string;
-  /** User-facing label — the Carillon account email, or a nickname. */
   label: string;
-  /** The capability link (bearer token). Never put this in a URL. */
+  /** Capability link (bearer token). Never put this in a URL. */
   link: string;
-  /** When this link was first stored, ISO-8601. */
   addedAt: string;
 }
 
@@ -77,7 +69,7 @@ if (typeof window !== "undefined") {
   });
 }
 
-// ── Imperative API (safe to call outside React, e.g. from api.ts) ─────────────
+// Imperative API, safe to call outside React (e.g. from api.ts).
 
 export function getState(): AuthState {
   return state;
@@ -93,11 +85,9 @@ export function getActiveLink(): string | null {
 
 /**
  * Add (or refresh) an account and make it active. Matches an existing local
- * account by server `accountId` first — a re-auth/join can mint a fresh
- * capability link for the SAME Carillon account, so we update the link in place
- * instead of adding a duplicate — then falls back to matching by link. An empty
- * `label` keeps the existing one (so adding a PIM account never renames the
- * Carillon account).
+ * account by server `accountId` first (a re-auth/join mints a fresh link for
+ * the same account, so update in place instead of duplicating), else by link.
+ * An empty `label` keeps the existing one.
  */
 export function addAccount(input: {
   label: string;
@@ -164,8 +154,6 @@ export function removeAccount(id: string) {
 export function clearAll() {
   set({ accounts: [], activeId: null });
 }
-
-// ── React binding ─────────────────────────────────────────────────────────────
 
 function subscribe(cb: () => void): () => void {
   listeners.add(cb);

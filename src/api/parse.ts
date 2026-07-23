@@ -1,12 +1,12 @@
 import type { ZodType, output } from "zod";
 
-// Validate a response at the boundary, but never let a schema drift take the UI
-// down: on mismatch we warn and pass the raw value through. Tighten to a hard
-// throw once the server's OpenAPI is the source of truth. (PLAN §1, §7)
+// Validate a response at the boundary without letting schema drift break the UI:
+// on mismatch, warn and pass the raw value through. TODO: hard-throw once the
+// server's OpenAPI is the source of truth.
 //
-// Returns the schema's exact `output` type (defaults applied) rather than a
-// widened generic, so callers' declared response types line up precisely (no
-// MutationFunction-assignability drift on schemas that use `.default()`).
+// Returns the schema's exact `output` type (defaults applied), not a widened
+// generic, so callers' response types line up (no MutationFunction drift on
+// schemas using `.default()`).
 export function parseOr<S extends ZodType>(
   schema: S,
   data: unknown,

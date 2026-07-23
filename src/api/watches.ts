@@ -13,9 +13,9 @@ import {
   type MeData,
 } from "./schemas";
 
-// Watch mutations. The list itself lives in the /me cache (see api/me.ts); these
-// patch it optimistically and invalidate on settle. Endpoints are global on the
-// server (no per-account scoping), keyed by watch id. (api.rs)
+// Watch mutations. The list lives in the /me cache (see api/me.ts); these patch
+// it optimistically and invalidate on settle. Server endpoints are global (no
+// per-account scoping), keyed by watch id.
 
 export function useCreateWatch() {
   const { activeLink } = useAuth();
@@ -85,10 +85,9 @@ export function useDeleteWatch() {
 }
 
 /**
- * POST /watches/{id}/activate — spend `credits` credits (months) to give a
- * service that much watching (§ BILLING_MODEL); stacks onto any time still
- * remaining. All-or-nothing; `402` when the pool can't cover it. Invalidates
- * /me so the new balance + activation show.
+ * POST /watches/{id}/activate — spend `credits` credit-months on a service
+ * (§ BILLING_MODEL); stacks onto time remaining. All-or-nothing; `402` when the
+ * pool can't cover it.
  */
 export function useActivateWatch() {
   const { activeLink } = useAuth();
@@ -105,7 +104,7 @@ export function useActivateWatch() {
 }
 
 /** POST /watches/{id}/auto-renew — draw the next credit from the pool at expiry
- *  instead of stopping. Optimistic on the /me cache. */
+ *  instead of stopping. Optimistic on /me. */
 export function useSetAutoRenew() {
   const { activeLink } = useAuth();
   const qc = useQueryClient();
@@ -138,8 +137,8 @@ export function useSetAutoRenew() {
 }
 
 /**
- * Rotate a watch's HMAC secret. Returns the NEW secret once (the server never
- * exposes it again), plus when the previous one stops being signed with.
+ * POST /watches/{id}/rotate-secret — returns the NEW HMAC secret once (never
+ * again), plus when the previous one stops being signed with.
  */
 export function useRotateSecret() {
   return useMutation({

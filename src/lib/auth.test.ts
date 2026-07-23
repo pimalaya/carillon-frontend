@@ -38,7 +38,7 @@ describe("auth store", () => {
 
   it("picks a remaining account when the active one is removed", () => {
     const a = addAccount({ label: "a", link: "link-a" });
-    addAccount({ label: "b", link: "link-b" }); // active
+    addAccount({ label: "b", link: "link-b" });
     removeAccount(getState().activeId!);
     expect(getActiveLink()).toBe("link-a");
     removeAccount(a.id);

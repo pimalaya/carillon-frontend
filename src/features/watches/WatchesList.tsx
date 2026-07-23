@@ -25,8 +25,8 @@ import { usePauseWatch, useResumeWatch, useSetAutoRenew } from "@/api/watches";
 import { formatDate } from "@/lib/format";
 import type { AccountMailbox, Watch } from "@/api/schemas";
 
-/** The "Not watching" state — a service that exists but has no paid month, so
- *  the supervisor isn't running it. Distinct from a paused watch. */
+/** "Not watching": a service that exists but has no paid month, so the
+ *  supervisor isn't running it. Distinct from a paused watch. */
 function NotWatching() {
   const { t } = useTranslation();
   return (
@@ -44,10 +44,9 @@ function NotWatching() {
 
 const Dash = () => <span className="text-xs text-muted-foreground">—</span>;
 
-/** The provider a service is grouped under: the registrable domain (last two
- *  labels) of the server host — so a login's mail (imap.…) and contacts
- *  (carddav.…) hosts collapse to one provider, e.g. `fastmail.com`. Mirrors the
- *  server's `metering::provider_domain`. */
+/** Registrable domain (last two labels) of the host, so a login's mail (imap.…)
+ *  and contacts (carddav.…) hosts collapse to one provider, e.g. `fastmail.com`.
+ *  Mirrors the server's `metering::provider_domain`. */
 function providerDomain(host: string): string {
   const labels = host
     .toLowerCase()
@@ -57,8 +56,8 @@ function providerDomain(host: string): string {
   return labels.length >= 2 ? labels.slice(-2).join(".") : host;
 }
 
-/** One service row: status, its two switches (Active = deliver events;
- *  Auto-renew = keep paying at expiry), and activate/extend + delete. */
+/** One service row. Two switches: Active = deliver events; Auto-renew = keep
+ *  paying at expiry. */
 function WatchRow({
   watch,
   svc,
@@ -76,8 +75,8 @@ function WatchRow({
 
   const watching = svc?.watching ?? false;
   const autoRenew = svc?.auto_renew ?? false;
-  // Pausing is meaningful while the service can actually run: a paid month
-  // (metered) or self-host (unmetered). A stopped, unpaid service can't deliver.
+  // Pausing only applies while the service can run (paid month or self-host); a
+  // stopped, unpaid service can't deliver anyway.
   const runnable = !metered || watching;
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
@@ -87,7 +86,6 @@ function WatchRow({
       onClick={() => navigate(`/watches/${watch.id}`)}
     >
       <TableCell>
-        {/* Grouped under the provider header; the row shows the kind + target. */}
         <div className="text-xs text-muted-foreground">
           {watch.source_kind === "carddav"
             ? t("watches.kindAddressbook")
@@ -111,7 +109,6 @@ function WatchRow({
         )}
       </TableCell>
 
-      {/* Active = paused/resumed: stop or resume webhook deliveries. */}
       <TableCell onClick={stop}>
         {runnable ? (
           <Switch
@@ -217,9 +214,8 @@ export function WatchesList() {
       ? watches
       : watches.filter((w) => w.login.toLowerCase() === filter.toLowerCase());
 
-  // Group services under their provider (the resolved domain, e.g. fastmail.com),
-  // so an account's mail + contacts sit under one header instead of separate
-  // per-login/protocol sections.
+  // Group services under their provider domain, so an account's mail + contacts
+  // sit under one header instead of separate per-login/protocol sections.
   const cols = metered ? 6 : 4;
   const groups = new Map<string, typeof shown>();
   for (const w of shown) {

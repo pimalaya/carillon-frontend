@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 
 import { StreamProvider } from "./StreamProvider";
 
-/** Top-level layout: one live stream for the whole app, then the routed tree. */
+/** Wraps the routed tree in one app-wide live stream. */
 export function RootLayout() {
   return (
     <StreamProvider>

@@ -7,10 +7,8 @@ import { useMe } from "@/api/me";
 import { ActivateDialog } from "./ActivateDialog";
 
 /**
- * A button that activates (start) or extends a service via the confirm dialog.
- * Guards an empty pool up front (a toast, not a dialog that could only show
- * negative math). Used where there's room for a button (e.g. the Billing card);
- * the tight dashboard rows open {@link ActivateDialog} from a menu instead.
+ * Button to activate or extend a service via {@link ActivateDialog}. Guards an
+ * empty pool with a toast up front, before the dialog could show negative math.
  */
 export function ActivateServiceButton({
   watchId,

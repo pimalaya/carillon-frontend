@@ -2,11 +2,8 @@ import { useTranslation } from "react-i18next";
 
 import { config } from "@/lib/config";
 
-/**
- * A slim, persistent early-beta notice under the app bar. Watches and billing
- * are real, but the software is young — set expectations and collect feedback.
- * Flip `config.betaBanner` to false at GA to remove it.
- */
+/** Persistent early-beta notice under the app bar. Flip `config.betaBanner` to
+ *  false at GA to remove it. */
 export function BetaBanner() {
   const { t } = useTranslation();
 

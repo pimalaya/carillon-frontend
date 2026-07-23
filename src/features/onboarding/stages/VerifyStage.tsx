@@ -8,8 +8,8 @@ import { useDeliveries } from "@/api/deliveries";
 import type { StageProps } from "../types";
 
 export function VerifyStage({ state, next, back }: StageProps) {
-  // The app-wide SSE stream feeds this list; it fills once the watch settles
-  // and the mailbox next changes. Read-only: we never send.
+  // Fed by the app-wide SSE stream; fills once the watch settles and the mailbox
+  // next changes. Read-only: Carillon never writes to the mailbox.
   const { data } = useDeliveries({ watchId: state.watchId });
   const fired = (data?.length ?? 0) > 0;
 

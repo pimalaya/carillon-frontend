@@ -1,34 +1,30 @@
 import type { AuthMethod, TestVerdict } from "@/api/schemas";
 
 export interface WizardState {
-  // Identify (email/server → discovery → chosen IMAP config)
   login: string;
   imap_host: string;
   imap_port: number;
   mailbox: string;
-  /** Chosen choice's transport security (informational — Carillon watches
-   *  over implicit TLS today; starttls/plain aren't wired yet). */
+  /** Transport security (informational — Carillon watches over implicit TLS
+   *  today; starttls/plain aren't wired yet). */
   security?: "tls" | "starttls" | "plain";
-  /** The auth method the user chose (password / bearer / oauth*). Drives which
-   *  credential form the next stage shows; OAuth carries its endpoints. */
+  /** Chosen auth method — drives which credential form the next stage shows;
+   *  OAuth carries its endpoints. */
   auth?: AuthMethod;
-  // Authenticate / test
   password: string;
   verdict?: TestVerdict;
-  /** Which kind of service is being created: an email folder (IMAP) or an
-   *  addressbook (CardDAV). Chosen first, in Identify. Defaults to email. */
+  /** Email folder (IMAP) or addressbook (CardDAV). Chosen first in Identify,
+   *  defaults to email. */
   service_type?: "email" | "addressbook";
   /** CardDAV context-root URL discovered in Identify — where addressbooks are
    *  listed from (and the identity host). Set for `addressbook` services. */
   carddav_base?: string;
-  /** The chosen CardDAV addressbook collection URL (picked in Configure from
-   *  `carddav_base`, or entered manually). Goes on the watch. */
+  /** Chosen CardDAV collection URL (picked in Configure from `carddav_base` or
+   *  entered manually). Goes on the watch. */
   carddav_url?: string;
-  // Configure
   notify_url: string;
   /** Client-generated HMAC secret, sent on create and shown once. */
   hmac_secret?: string;
-  // Results of activation
   capabilityLink?: string;
   account_id?: string;
   watchId?: string;
@@ -50,10 +46,8 @@ export const initialWizardState: WizardState = {
   notify_url: "",
 };
 
-/** The single "Add service" flow (§ SERVICE_MODEL v3): identify what to watch,
- *  sign in (the credential is held here and stored on the service), pick the
- *  target + webhook, watch it fire, done. No separate "Add account" step —
- *  account/credential and service are one thing now. */
+/** The single "Add service" flow (§ SERVICE_MODEL v3). No separate "Add account"
+ *  step — account/credential and service are one thing now. */
 export const WIZARD_STAGES = [
   "Identify",
   "Authenticate",
@@ -62,8 +56,8 @@ export const WIZARD_STAGES = [
   "Commit",
 ] as const;
 
-/** Best-effort client-side IMAP host guess from an email domain, used only as
- *  a fallback for manual entry when discovery finds nothing. Always editable. */
+/** Guesses an IMAP host from an email domain — fallback for manual entry when
+ *  discovery finds nothing. Always editable. */
 export function guessImapHost(login: string): string {
   const domain = login.split("@")[1]?.toLowerCase();
   if (!domain) return "";
@@ -80,7 +74,7 @@ export function guessImapHost(login: string): string {
   return known[domain] ?? `imap.${domain}`;
 }
 
-/** Notify URL rule mirrors the server: https, or http on loopback. */
+/** Notify-URL rule mirrors the server: https, or http on loopback. */
 export function isValidNotifyUrl(url: string): boolean {
   try {
     const u = new URL(url);

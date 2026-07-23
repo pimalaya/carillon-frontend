@@ -11,12 +11,8 @@ import type {
 } from "@/api/schemas";
 
 // In-browser mock backend, faithful to carillon-backend's OpenAPI wire shapes
-// (snake_case, unix seconds). It stands in when there's no real server to point
-// at; the real testing path is VITE_API_BASE_URL + VITE_ENABLE_MOCKS=false.
-// Dev-only — lazily imported. (PLAN §7)
-//
-// Model: per-service credit pool (§ BILLING_MODEL). 1 credit = one month
-// watching one service (watch). Refill in packs of 5.
+// (snake_case, unix seconds). Billing model: per-service credit pool, 1 credit =
+// one month watching one service, refilled in packs of 5.
 
 export const DEMO_LINK = "demo-cap-2f9a8c1e";
 
@@ -64,8 +60,7 @@ const magicTokens = new Map<string, string>();
 // Sybil barrier: mailbox_keys whose one free credit has already been claimed.
 const freeCreditClaims = new Set<string>();
 
-/** mailbox_key: the server normalises (login, host); we use the login for a
- *  readable label — the field is opaque to the UI either way. */
+// Server normalises (login, host); we key on login, opaque to the UI either way.
 const mailboxKey = (login: string) => login.toLowerCase();
 
 function newAccount(
@@ -76,11 +71,8 @@ function newAccount(
   return { id, link, email, credits: 0, free_credited: false, memberships: [] };
 }
 
-/**
- * Claim the one free credit for a PIM account under the sybil barrier: granted
- * only if the account hasn't been credited AND this mailbox_key hasn't been
- * claimed by anyone. Mirrors the server's `claim_free_credit`.
- */
+/** Grant the one free credit only if the account isn't yet credited AND this
+ *  mailbox_key is unclaimed. Mirrors the server's `claim_free_credit`. */
 function claimFreeCredit(
   account: MockAccount,
   mailboxKey: string,
@@ -94,8 +86,8 @@ function claimFreeCredit(
 }
 
 function seed() {
-  // The demo account holds a small pool and three services in the three states
-  // worth showing: healthy, ending-soon (auto-renew on), and not-yet-activated.
+  // Demo account: small pool and services in the states worth showing (healthy,
+  // ending-soon with auto-renew, and not-yet-activated).
   const demo = newAccount("acct_demo", DEMO_LINK, "demo@fastmail.com");
   demo.credits = 6;
   demo.free_credited = true;
@@ -131,7 +123,7 @@ function seed() {
       nowSecs() + 20 * DAY,
       false,
     ),
-    // A second service on the SAME PIM account (different folder) — multi-service.
+    // Second service on the same PIM account (different folder): multi-service.
     mkWatch(
       "wch_fastmail_archive",
       "demo@fastmail.com",
@@ -218,8 +210,7 @@ function mkWatch(
   };
 }
 
-/** Registrable domain (last two labels) of a host — mirrors the server's
- *  provider domain, for the demo. */
+/** Registrable domain (last two labels), mirroring the server's provider. */
 function providerOf(host: string): string {
   const labels = host.toLowerCase().split(".").filter(Boolean);
   return labels.length >= 2 ? labels.slice(-2).join(".") : host;
@@ -297,8 +288,6 @@ function accountView(account: MockAccount): AccountView {
 
 seed();
 
-// ── Public mock API (consumed by handlers.ts / events.ts) ─────────────────────
-
 export const mockDb = {
   me(link: string): Me {
     const account = resolve(link);
@@ -340,9 +329,8 @@ export const mockDb = {
   }): { status: string; id: string; free_trial?: boolean } | "duplicate" {
     const account_id = body.account_id ?? body.id;
     const mailbox = body.mailbox ?? "INBOX";
-    // Dedup a service by (account, login, target) WITHIN an account: a CardDAV
-    // target is the collection URL, else the mailbox (folder). A different
-    // Carillon account may watch the same target. Mirrors the server's 409.
+    // Dedup by (account, login, target): target is the CardDAV collection URL
+    // else the mailbox. Different accounts may watch the same target (server 409).
     const target = body.carddav_url ?? mailbox;
     const clash = watches.some(
       (w) =>
@@ -351,9 +339,8 @@ export const mockDb = {
         (w.carddav_url ?? w.mailbox) === target,
     );
     if (clash) return "duplicate";
-    // Free-trial head start (§ SERVICE_MODEL v3): a new service auto-watches for
-    // a week, no credit spent. The real server gates this once per mailbox; the
-    // mock always grants it so the demo shows the happy "watching free" path.
+    // Free-trial head start: a new service auto-watches for a week, no credit
+    // spent. The server gates this once per mailbox; the mock always grants it.
     const trialUntil = nowSecs() + 7 * 86_400;
     const watch: MockWatch = {
       id: body.id,
@@ -400,8 +387,8 @@ export const mockDb = {
     return { status: "ok", secret, prev_expires_at: nowSecs() + DAY };
   },
 
-  /** POST /watches/{id}/activate — spend `credits` credits (months, all-or-
-   *  nothing), stacking onto remaining time. */
+  /** POST /watches/{id}/activate — spend `credits` months (all-or-nothing),
+   *  stacking onto remaining time. */
   activate(
     id: string,
     credits = 1,
@@ -491,11 +478,10 @@ export const mockDb = {
     return accounts.delete(link);
   },
 
-  // ── Magic-link sign-in ──────────────────────────────────────────────────────
   magicRequest(email: string): string {
     const token = `magic-${randHex(20)}`;
     magicTokens.set(token, email.toLowerCase());
-    // No email is actually sent in the mock; log the verify URL for dev sign-in.
+    // No email is sent in the mock; log the verify URL for dev sign-in.
     // eslint-disable-next-line no-console
     console.info(`[mock] magic link: ${location.origin}/verify?token=${token}`);
     return token;
@@ -515,16 +501,13 @@ export const mockDb = {
   },
 };
 
-// ── Onboarding: test-connect + capability-link issuance ───────────────────────
-
 export function mockTestConnect(body: {
   login: string;
   password?: string;
   imap_host?: string;
 }): TestVerdict {
-  // Deterministic by input so each failure mode is demoable:
-  //   password "wrong"          → auth fails
-  //   host/login contains "nocaps" → server lacks IDLE/QRESYNC
+  // Deterministic failure modes: password "wrong" fails auth; host/login
+  // containing "nocaps" means the server lacks IDLE/QRESYNC.
   const authenticated = body.password !== "wrong";
   const caps = !`${body.imap_host ?? ""}${body.login}`.includes("nocaps");
   const missing: string[] = [];

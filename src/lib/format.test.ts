@@ -4,7 +4,6 @@ import { daysUntil, eventMeta, formatDate, watchDisplay } from "./format";
 
 describe("formatDate", () => {
   it("renders an absolute short date from unix seconds", () => {
-    // 2026-08-03T00:00:00Z — assert the year/day survive the format.
     const out = formatDate(Date.UTC(2026, 7, 3) / 1000);
     expect(out).toContain("2026");
     expect(out).toContain("3");

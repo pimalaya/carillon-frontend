@@ -6,8 +6,7 @@ import "./i18n";
 import App from "./App";
 import { config } from "./lib/config";
 
-// In mock mode, start the MSW worker before the app so the very first query is
-// intercepted. Requires the generated worker (`npm run mocks:init`) once.
+// Start the MSW worker before the app so the very first query is intercepted.
 async function enableMocking() {
   if (!config.mocksEnabled) return;
   const { worker } = await import("./mocks/browser");

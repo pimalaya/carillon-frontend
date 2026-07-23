@@ -13,7 +13,7 @@ import { deliverySchema, type Delivery } from "./schemas";
 const deliveryListSchema = z.array(deliverySchema);
 
 export interface DeliveryFilter {
-  /** Filter to one watch (server-side, via the `account` query param). */
+  /** Filters to one watch server-side (via the `account` query param). */
   watchId?: string;
   limit?: number;
 }
@@ -45,10 +45,9 @@ function prepend(
 }
 
 /**
- * Wire the live SSE stream into the cache: prepend delivery events into the
- * relevant lists, reflect `status` events on the watch's live state, and toast
- * entitlement `notice`s (refetching the subscription). Returns the connection
- * status for the live/stale indicator. (PLAN §8)
+ * Wire the live SSE stream into the cache: prepend `delivery` events, reflect
+ * `status` events onto the watch's live state, toast `notice`s (and refetch /me).
+ * Returns the connection status for the live/stale indicator.
  */
 export function useLiveDeliveries(
   enabled = true,

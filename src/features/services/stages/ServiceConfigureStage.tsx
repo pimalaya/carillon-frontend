@@ -25,7 +25,7 @@ import {
   type StageProps,
 } from "@/features/onboarding/types";
 
-/** A CardDAV collection URL is https. */
+/** A CardDAV collection URL must be https. */
 function isValidCardDavUrl(url: string | undefined): boolean {
   if (!url) return false;
   try {
@@ -35,20 +35,20 @@ function isValidCardDavUrl(url: string | undefined): boolean {
   }
 }
 
-/** A friendly default addressbook name from the collection URL's last segment
- *  (only used for the manual-URL fallback; the picker uses the reported name). */
+/** Default addressbook name from the collection URL's last segment — only for
+ *  the manual-URL fallback; the picker uses the reported name. */
 function deriveName(url: string | undefined): string {
   if (!url) return "";
   const segment = url.replace(/\/+$/, "").split("/").pop() ?? "";
   return decodeURIComponent(segment);
 }
 
-/** "Configure" — pick the target (an IMAP folder or a CardDAV addressbook, each a
- *  dropdown of what the account actually has) and the webhook URL, then create
- *  the service. The credential lives on the service now (§ SERVICE_MODEL v3): the
- *  held password rides through on create, and the target-listing doubles as its
- *  check. An OAuth mailbox carries no password — the server lists and watches it
- *  with the stored refresh token (sent via the capability link). */
+/** "Configure" — pick the target (IMAP folder or CardDAV addressbook) and the
+ *  webhook URL, then create the service. The credential lives on the service now
+ *  (§ SERVICE_MODEL v3): the held password rides through on create, and the
+ *  target-listing doubles as its check. An OAuth mailbox carries no password —
+ *  the server lists and watches it with the stored refresh token (sent via the
+ *  capability link). */
 export function ServiceConfigureStage({
   state,
   update,
@@ -69,13 +69,12 @@ export function ServiceConfigureStage({
   const busy = createWatch.isPending;
   const canAdd = urlValid && !busy && (!isAddressbook || cardUrlValid);
 
-  // The wizard holds a password for the password path; an OAuth mailbox has none
-  // and lists via its stored credential (sent by the capability link instead).
+  // An OAuth mailbox holds no password and lists via its stored credential (sent
+  // by the capability link instead).
   const hasPassword = state.password.length > 0;
 
-  // Fetch the folder list for an email service. With a password we list via
-  // LOGIN (unauthenticated); for OAuth we send the capability link and the
-  // server uses the stored refresh token. Keyed by the connection. (api.rs)
+  // Fetch the email service's folder list. Password path lists via LOGIN; OAuth
+  // sends the capability link and the server uses the stored refresh token. (api.rs)
   const mailboxesQuery = useMailboxes({
     imap_host: state.imap_host,
     imap_port: state.imap_port,
@@ -86,9 +85,8 @@ export function ServiceConfigureStage({
   });
   const mailboxes = mailboxesQuery.data?.mailboxes ?? [];
 
-  // List the collections under the discovered context root — the addressbook
-  // dropdown, exactly like the folder picker. Password path sends the held
-  // password; OAuth sends the capability link (stored refresh token). (api.rs)
+  // List collections under the discovered context root, like the folder picker.
+  // Password path sends the password; OAuth sends the capability link. (api.rs)
   const davBase = state.carddav_base ?? "";
   const addressbooksQuery = useAddressbooks({
     carddav_url: davBase,
@@ -98,11 +96,10 @@ export function ServiceConfigureStage({
     enabled: isAddressbook && !!davBase && (hasPassword || !!activeLink),
   });
   const addressbooks = addressbooksQuery.data?.addressbooks ?? [];
-  // The listing failed (or there's no base URL) — fall back to a pasted URL.
+  // Fall back to a pasted URL when listing fails or there's no base URL.
   const davManual = isAddressbook && (!davBase || addressbooksQuery.isError);
 
-  // Default the folder to the first listed one (unless the current pick is in
-  // the list) once the folders arrive.
+  // Default the folder to the first listed one, unless the current pick is in it.
   useEffect(() => {
     if (isAddressbook) return;
     const names = mailboxes.map((m) => m.name);
@@ -111,7 +108,7 @@ export function ServiceConfigureStage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mailboxesQuery.data]);
 
-  // Default to the first listed addressbook (carrying its name) once they load.
+  // Default to the first listed addressbook, carrying its name.
   useEffect(() => {
     if (!isAddressbook) return;
     const first = addressbooks[0];
@@ -145,9 +142,9 @@ export function ServiceConfigureStage({
     try {
       const secret = state.hmac_secret ?? randomSecret();
       const id = randomWatchId();
-      // The password (when held) is stored on the watch; an OAuth mailbox sends
-      // none and the server uses its stored credential. The client owns the
-      // watch id + HMAC secret so the next step can show the secret once.
+      // The held password is stored on the watch; OAuth sends none and the server
+      // uses its stored credential. Client owns the watch id + HMAC secret so the
+      // next step can show the secret once.
       const password = state.password || undefined;
       const body: CreateWatchRequest = isAddressbook
         ? {
@@ -178,8 +175,7 @@ export function ServiceConfigureStage({
             active: true,
           };
       const result = await createWatch.mutateAsync(body);
-      // Free-trial head start: explicit about *why* it's free (first service on
-      // this provider). Non-first services on the same provider get nothing.
+      // Free trial only for the first service on a provider; later ones get none.
       if (result.free_trial && result.provider) {
         toast.success(t("services.trialGranted", { provider: result.provider }));
       }
@@ -207,8 +203,8 @@ export function ServiceConfigureStage({
         <div className="space-y-2">
           <Label htmlFor="addressbook">{t("services.addressbookPick")}</Label>
           {davManual ? (
-            // No listing (server we couldn't enumerate, or wrong credentials):
-            // paste the collection URL; its last path segment becomes the name.
+            // No listing (couldn't enumerate, or wrong credentials): paste the
+            // collection URL; its last path segment becomes the name.
             <Input
               id="addressbook"
               type="url"
@@ -250,8 +246,7 @@ export function ServiceConfigureStage({
             </Select>
           )}
           {addressbooksQuery.isError ? (
-            // The listing failed (usually CardDAV auth): say why, and let the
-            // user paste the collection URL as a fallback.
+            // Listing failed (usually CardDAV auth): say why, offer the URL fallback.
             <p className="text-xs text-destructive">
               {t("services.addressbooksError")}
               {addressbooksQuery.error instanceof Error

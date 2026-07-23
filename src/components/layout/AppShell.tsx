@@ -10,10 +10,8 @@ import { useStreamStatus } from "./StreamProvider";
 import { LiveIndicator } from "@/components/LiveIndicator";
 import { connectionLabel } from "@/lib/config";
 
-/**
- * App frame: sidebar + top bar + routed content. Reads the app-wide stream
- * status (owned by StreamProvider) for the header's live indicator. (PLAN §8)
- */
+/** App frame (sidebar + top bar + routed content). Reads the app-wide stream
+ *  status owned by StreamProvider for the header indicator. (PLAN §8) */
 export function AppShell() {
   const streamStatus = useStreamStatus();
   const { t } = useTranslation();

@@ -12,8 +12,7 @@ export function BillingPage() {
         title={t("billing.title")}
         description={t("billing.description")}
       />
-      {/* Same shape as the dashboard: services list wide on the left, the credit
-          pool card on the right (same size as the dashboard's). */}
+      {/* Mirror the dashboard grid: wide services list, credit pool card aside. */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <ServicesCard />

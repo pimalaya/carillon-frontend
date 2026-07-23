@@ -66,7 +66,6 @@ export function WelcomePage() {
         into a signed, content-free webhook — no mailbox writes.
       </p>
 
-      {/* Magic-link sign-in — the primary way into an account. */}
       <div className="mt-8 max-w-md">
         {sent ? (
           <div className="rounded-lg border bg-secondary/40 p-4">
@@ -109,8 +108,7 @@ export function WelcomePage() {
         )}
       </div>
 
-      {/* A magic link is the only way in — it creates/opens the Carillon
-          account that PIM accounts are then attached to. (Demo is dev-only.) */}
+      {/* Demo is dev-only; the magic link is the only real way in. */}
       {config.mocksEnabled && (
         <div className="mt-6">
           <Button variant="ghost" onClick={exploreDemo}>

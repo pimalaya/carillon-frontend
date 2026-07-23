@@ -26,8 +26,8 @@ i18n
     },
     fallbackLng: "en",
     supportedLngs: SUPPORTED_LANGUAGES.map((language) => language.code),
-    // React already escapes on render — double-escaping mangles interpolated
-    // values (e.g. an ampersand in an email), so turn it off here.
+    // React escapes on render; double-escaping mangles interpolated values
+    // (e.g. an ampersand in an email), so turn it off here.
     interpolation: { escapeValue: false },
     detection: {
       order: ["localStorage", "navigator"],
@@ -36,8 +36,7 @@ i18n
     },
   });
 
-// Keep the document language in sync so the browser (and assistive tech) sees
-// the active locale.
+// Keep <html lang> in sync so the browser and assistive tech see the locale.
 const syncHtmlLang = (language: string) => {
   document.documentElement.lang = language;
 };

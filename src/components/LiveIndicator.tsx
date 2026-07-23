@@ -21,7 +21,7 @@ const meta: Record<StreamStatus, { label: string; dot: string; text: string }> =
     },
   };
 
-/** Small live/stale pill for the header and log toolbars. (PLAN §8) */
+/** Live/stale pill for the header and log toolbars. (PLAN §8) */
 export function LiveIndicator({ status }: { status: StreamStatus }) {
   const { label, dot, text } = meta[status];
   const animate =

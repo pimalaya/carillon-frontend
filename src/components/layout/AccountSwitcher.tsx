@@ -15,9 +15,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useMe } from "@/api/me";
 
-/** Carillon-account switcher — one entry per Carillon account (magic-link
- *  identity / capability link) this browser knows. The credit pool is scoped to
- *  the active one; PIM accounts live *under* it (filtered on the dashboard). */
+/** Switches Carillon accounts (one per magic-link identity known to this
+ *  browser). The credit pool is scoped to the active one; PIM accounts live
+ *  under it. */
 export function AccountSwitcher() {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -25,9 +25,8 @@ export function AccountSwitcher() {
     useAuth();
   const { data: me } = useMe();
 
-  // Label the active account with the Carillon email (the magic-link identity)
-  // once /me resolves it — so the top bar shows who you signed in as, not the
-  // "my account" placeholder or a PIM login.
+  // Replace the placeholder label with the Carillon email once /me resolves it,
+  // so the top bar shows who you signed in as.
   const email = me?.balance.email;
   useEffect(() => {
     if (email && active && active.label !== email) {
@@ -65,9 +64,8 @@ export function AccountSwitcher() {
           </DropdownMenuItem>
         ))}
         <DropdownMenuSeparator />
-        {/* Add *another Carillon account* (a separate magic-link identity, with
-            its own credit pool) — not a PIM account. Purely local to this
-            browser; elsewhere you sign in again via a magic link. */}
+        {/* Adds another Carillon account (a separate magic-link identity with
+            its own credit pool), local to this browser — not a PIM account. */}
         <DropdownMenuItem onSelect={() => navigate("/welcome")}>
           <Plus />
           {t("accountSwitcher.addAccount")}

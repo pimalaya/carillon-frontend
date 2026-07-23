@@ -9,9 +9,9 @@ import {
   mockTestWebhook,
 } from "./db";
 
-// MSW REST handlers over the in-memory mock DB, mirroring carillon-backend's
-// routes and wire shapes (api.rs / openapi.yaml). The SSE /events stream is
-// served by the synthetic generator in events.ts, not here. (PLAN §7)
+// MSW REST handlers over the mock DB, mirroring carillon-backend's routes and
+// wire shapes (api.rs / openapi.yaml). The SSE /events stream is served by the
+// generator in events.ts, not here.
 
 const route = (path: string) => apiUrl(path);
 
@@ -30,14 +30,13 @@ function unauthorized() {
 export const handlers = [
   http.get(route("/health"), () => HttpResponse.text("ok")),
 
-  // ── Onboarding / identity ──────────────────────────────────────────────────
   http.post(route("/test"), async ({ request }) => {
     const body = (await request.json()) as {
       login: string;
       password?: string;
       imap_host?: string;
     };
-    await delay(700); // connect + auth + capability probe takes a beat
+    await delay(700);
     return HttpResponse.json(mockTestConnect(body));
   }),
 
@@ -108,7 +107,6 @@ export const handlers = [
     return HttpResponse.json({ status: "ok", revoked: mockDb.signout(link) });
   }),
 
-  // ── Watches ────────────────────────────────────────────────────────────────
   http.get(route("/watches"), async () => {
     await delay(200);
     return HttpResponse.json(mockDb.allWatches());
@@ -186,7 +184,6 @@ export const handlers = [
     });
   }),
 
-  // ── Deliveries ─────────────────────────────────────────────────────────────
   http.get(route("/deliveries"), async ({ request }) => {
     const url = new URL(request.url);
     await delay(250);
@@ -198,7 +195,6 @@ export const handlers = [
     );
   }),
 
-  // ── Accounts (billing) ─────────────────────────────────────────────────────
   http.get(route("/accounts"), () => HttpResponse.json(mockDb.accountsList())),
 
   http.get(route("/accounts/:id"), ({ params }) => {
@@ -208,7 +204,6 @@ export const handlers = [
     return HttpResponse.json(view);
   }),
 
-  // ── Billing (credit packs) ─────────────────────────────────────────────────
   http.post(route("/billing/checkout"), async ({ request }) => {
     const link = linkOf(request);
     if (!link) return unauthorized();

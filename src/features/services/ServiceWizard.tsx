@@ -23,11 +23,6 @@ import {
 import { useMe } from "@/api/me";
 import { ServiceConfigureStage } from "./stages/ServiceConfigureStage";
 
-// The one "Add service" flow (§ SERVICE_MODEL v3). Five steps, one credential:
-// identify what to watch → sign in (the password is held here and stored on the
-// service) → pick the target + webhook → watch it fire → activate. There is no
-// separate "Add account" — account/credential and service are one thing now.
-
 const STAGE_COMPONENTS: ComponentType<StageProps>[] = [
   IdentifyStage,
   AuthenticateStage,
@@ -69,8 +64,8 @@ export function ServiceWizard({
   }));
 
   // Seed the billing account id once /me arrives. The real server keys the watch
-  // off the capability link (this is ignored for a scoped caller); the mock uses
-  // it — so the created service lands under the right Carillon account either way.
+  // off the capability link and ignores this; the mock uses it — so the service
+  // lands under the right Carillon account either way.
   useEffect(() => {
     if (me?.account_id)
       setState((s) => (s.account_id ? s : { ...s, account_id: me.account_id }));

@@ -12,11 +12,9 @@ interface SecretFieldProps {
   className?: string;
 }
 
-/**
- * Displays a webhook signing secret. The server only ever returns a hint after
- * creation; rotating mints a new one with overlap so receivers can migrate.
- * (D§4, ROADMAP M3)
- */
+/** Displays a webhook signing secret. The server returns only a hint after
+ *  creation; rotating mints a new one with overlap so receivers migrate.
+ *  (D§4, ROADMAP M3) */
 export function SecretField({
   value,
   onRotate,

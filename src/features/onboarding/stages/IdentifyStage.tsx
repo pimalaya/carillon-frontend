@@ -20,14 +20,13 @@ import { useDiscover, useDiscoverContacts } from "@/api/onboarding";
 import type { AuthMethod, CardDavChoice, ImapChoice } from "@/api/schemas";
 import { guessImapHost, type StageProps } from "../types";
 
-/** The auth form a method maps to — the label shown on a choice. */
 function authLabel(auth: AuthMethod, t: TFunction): string {
   if (auth.kind === "password") return t("onboarding.authPassword");
   if (auth.kind === "bearer") return t("onboarding.authToken");
   return t("onboarding.authOauth");
 }
 
-/** Two IMAP choices are the same selection iff same endpoint + auth form. */
+/** Two IMAP choices match iff same endpoint + auth form. */
 function sameImap(
   a: { host: string; port: number },
   b: ImapChoice,
@@ -95,7 +94,6 @@ function DavChoiceCard({
   );
 }
 
-/** The Email / Contacts type cards — intent before any technical choice. */
 function TypeCard({
   active,
   icon,
@@ -146,8 +144,8 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
     : state.imap_host.trim().length > 0 && !!state.auth;
   const busy = discover.isPending || discoverContacts.isPending;
 
-  /** The identity host for a CardDAV context root (keys the mailbox, keeps the
-   *  login stable across the flow). */
+  /** Identity host for a CardDAV context root — keys the mailbox and keeps the
+   *  login stable across the flow. */
   function davHost(url: string): string {
     try {
       return new URL(url).host;
@@ -179,7 +177,6 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
       // The discovered URL is the context root; the collection is picked later.
       carddav_base: choice.url,
       imap_host: davHost(choice.url),
-      // Respect the choice's auth form (the credential form shows next).
       auth: choice.auth,
       login: state.login || (input.includes("@") ? input : ""),
     });
@@ -193,8 +190,8 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
     if (isContacts) {
       try {
         const res = await discoverContacts.mutateAsync(input);
-        // The server emits a Password choice first, then an OAuth one when the
-        // endpoint advertises it — show both, defaulting to Password.
+        // Server emits a Password choice first, then OAuth if advertised; show
+        // both, defaulting to the first (Password).
         setDavChoices(res.choices);
         const best = res.choices[0];
         if (best) {
@@ -231,7 +228,6 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
 
   return (
     <div className="space-y-5">
-      {/* Intent first: what to watch, before any technical choice. */}
       <div className="space-y-2">
         <Label>{t("onboarding.whatToWatch")}</Label>
         <div className="grid grid-cols-2 gap-2">
@@ -276,7 +272,6 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
         </p>
       </div>
 
-      {/* Discovered choices, per kind. */}
       {!isContacts &&
         imapChoices !== null &&
         (imapChoices.length > 0 ? (
@@ -346,7 +341,6 @@ export function IdentifyStage({ state, update, next, back }: StageProps) {
         </Alert>
       )}
 
-      {/* Manual override. */}
       {!manual ? (
         <button
           type="button"

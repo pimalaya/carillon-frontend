@@ -17,7 +17,6 @@ import { useSetAutoRenew } from "@/api/watches";
 import { formatDate } from "@/lib/format";
 import type { AccountMailbox } from "@/api/schemas";
 
-/** One service row: its watch state + Activate / auto-renew controls. */
 function ServiceRow({ m }: { m: AccountMailbox }) {
   const autoRenew = useSetAutoRenew();
   const watchId = m.watch_id;
@@ -52,8 +51,8 @@ function ServiceRow({ m }: { m: AccountMailbox }) {
 
       {watchId && (
         <div className="flex shrink-0 items-center gap-3">
-          {/* Auto-renew only means something while watching — nothing to renew
-              otherwise. Activating a stopped service turns it on. */}
+          {/* Auto-renew only applies while watching; activating a stopped
+              service turns it on. */}
           {m.watching && (
             <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
               auto-renew
@@ -74,8 +73,8 @@ function ServiceRow({ m }: { m: AccountMailbox }) {
   );
 }
 
-/** The account's services (billed units) and their activation state. Hidden
- *  when the server is unmetered (self-host). */
+/** Account's services and their activation state. Hidden when unmetered
+ *  (self-host). */
 export function ServicesCard() {
   const navigate = useNavigate();
   const { data: me, isLoading } = useMe();

@@ -10,8 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { SUPPORTED_LANGUAGES } from "@/i18n";
 
-/** Header language picker. Writes the choice through i18next, which persists it
- *  to localStorage and updates `<html lang>` — so it sticks across reloads. */
+/** Header language picker. i18next persists the choice to localStorage and sets
+ *  `<html lang>`, so it sticks across reloads. */
 export function LanguageSwitcher() {
   const { i18n, t } = useTranslation();
   const active = i18n.resolvedLanguage;

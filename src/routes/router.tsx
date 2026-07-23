@@ -19,8 +19,7 @@ export const router = createBrowserRouter([
       { path: "welcome", element: <WelcomePage /> },
       { path: "verify", element: <VerifyPage /> },
       {
-        // Everything below requires a stored capability link and renders inside
-        // the app shell.
+        // Children require a stored capability link and render in the app shell.
         element: <RequireAccount />,
         children: [
           { index: true, element: <DashboardPage /> },

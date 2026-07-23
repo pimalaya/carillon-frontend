@@ -20,12 +20,12 @@ import {
 } from "./schemas";
 
 // Onboarding + identity flows. /discover, /test and /auth are public
-// (pre-account) and rate-limited; /signout carries the capability link. (D§5)
+// (pre-account) and rate-limited; /signout carries the capability link.
 
 /**
  * POST /discover — resolve an email/domain/server to candidate IMAP configs +
- * auth methods (via io-pim-discovery). Public, rate-limited per IP. An
- * unresolvable input returns an empty candidate list, not an error. (D§2)
+ * auth methods. Public, rate-limited per IP; unresolvable input returns an empty
+ * candidate list, not an error.
  */
 export function useDiscover() {
   return useMutation<DiscoverResponse, Error, string>({
@@ -39,7 +39,7 @@ export function useDiscover() {
 }
 
 /** POST /discover kind=contacts — resolve an email/domain to CardDAV context
- *  roots (RFC 6764). The type-first "Contacts" branch of onboarding. */
+ *  roots (RFC 6764). */
 export function useDiscoverContacts() {
   return useMutation<ContactsDiscoverResponse, Error, string>({
     mutationFn: (input) =>
@@ -69,15 +69,15 @@ export interface CardDavTestInput {
   /** Identity host + login (for the rate-limit key / mailbox key). */
   imap_host: string;
   login: string;
-  /** The password the wizard is holding — sent straight through (§ v3: the
-   *  credential lives on the service, not a stored account credential). */
+  /** Sent straight through (§ v3: the credential lives on the service, not a
+   *  stored account credential). */
   password: string;
 }
 
 /**
- * POST /test with `source_kind=carddav` — PROPFIND the collection with the
- * entered password, so "Add service" can confirm an addressbook is reachable +
- * watchable before creating. Public + rate-limited (no capability link needed).
+ * POST /test with `source_kind=carddav` — PROPFIND the collection so "Add
+ * service" confirms an addressbook is reachable before creating. Public,
+ * rate-limited (no capability link needed).
  */
 export function useTestCardDav() {
   return useMutation<TestVerdict, Error, CardDavTestInput>({
@@ -112,17 +112,14 @@ export interface MailboxesQueryInput {
   /** Reuse flow: the capability link — the server resolves the PIM account's
    *  stored credential (password or OAuth). Sent instead of a password. */
   link?: string;
-  /** Only fetch once the connection is known (e.g. a PIM account is chosen). */
   enabled: boolean;
 }
 
 /**
- * POST /mailboxes — authenticate and LIST the account's selectable folders for
- * the "Add service" picker. A *query* (keyed by the connection), not a mutation
- * fired from an effect: the latter desyncs its observer under StrictMode, so the
- * list would never appear. Fetches once per (link, login, host, port); switching
- * the PIM account re-keys and refetches. (Password flow sends the password
- * unauth; reuse flow sends the capability link so the server uses the stored cred.)
+ * POST /mailboxes — authenticate and LIST the selectable folders for the "Add
+ * service" picker. A query keyed by the connection, NOT a mutation from an
+ * effect: the latter desyncs its observer under StrictMode so the list never
+ * appears. Re-keys and refetches per (link, login, host, port).
  */
 export function useMailboxes({
   imap_host,
@@ -151,20 +148,18 @@ export interface AddressbooksQueryInput {
   /** The CardDAV context-root URL to enumerate collections under. */
   carddav_url: string;
   login: string;
-  /** Password path: the held password — the listing doubles as its check (§ v3). */
+  /** Password path: the listing doubles as its credential check (§ v3). */
   password?: string;
   /** OAuth path: the capability link — the server uses the stored refresh token
-   *  (an empty password is sent), exactly like `useMailboxes`. */
+   *  (an empty password is sent), like `useMailboxes`. */
   link?: string;
   enabled: boolean;
 }
 
 /**
- * POST /addressbooks — list the CardDAV collections under a context root, for
- * the target dropdown. Password path sends the entered password; OAuth path
- * sends the capability link (stored refresh token). A `useQuery` (not a mutation
- * in an effect) for the same StrictMode reason as `useMailboxes`. Keyed by
- * (link, carddav_url, login).
+ * POST /addressbooks — list the CardDAV collections under a context root for the
+ * target dropdown. A query (not a mutation in an effect) for the same StrictMode
+ * reason as `useMailboxes`. Keyed by (link, carddav_url, login).
  */
 export function useAddressbooks({
   carddav_url,
@@ -194,9 +189,9 @@ export interface TestWebhookInput {
 }
 
 /**
- * POST /webhook/test — POST one synthetic, signed `test` event to the URL so
- * onboarding can confirm the endpoint is reachable (and verifying signatures)
- * before activating. Public, rate-limited per IP.
+ * POST /webhook/test — POST one synthetic signed `test` event so onboarding can
+ * confirm the endpoint is reachable (and verifying signatures) before
+ * activating. Public, rate-limited per IP.
  */
 export function useTestWebhook() {
   return useMutation<WebhookTestResult, Error, TestWebhookInput>({
@@ -209,12 +204,10 @@ export function useTestWebhook() {
   });
 }
 
-// ── OAuth login (D§7 / M10) ────────────────────────────────────────────────────
-//
-// OAuth proves control of a mailbox *and* leaves the server holding a refresh
+// OAuth proves control of a mailbox AND leaves the server holding a refresh
 // token (never a password). /oauth/start returns a provider authorization URL;
-// the browser opens it in a popup, the provider redirects to the server's
-// /oauth/callback, and that page posts the result back to this window.
+// the browser opens it in a popup, the provider redirects to /oauth/callback,
+// and that page posts the result back to this window.
 
 export interface OauthStartInput {
   /** The chosen OAuth method from discovery (issuer or endpoints). */
@@ -289,8 +282,8 @@ export interface OauthResult {
 }
 
 /**
- * Opens the provider authorization URL in a popup and resolves with the result
- * the /oauth/callback page posts back (validated to come from the API origin).
+ * Open the authorization URL in a popup and resolve with the result the
+ * /oauth/callback page posts back (validated to come from the API origin).
  * Resolves `{ok:false}` if the popup is blocked or closed without completing.
  */
 export function runOauthPopup(authorizationUrl: string): Promise<OauthResult> {

@@ -1,8 +1,7 @@
 import type { DeliveryEvent, WatchState } from "@/api/schemas";
 
-// Presentation helpers: timestamps (unix seconds, as the server sends them),
-// absolute dates for subscription/trial, and the label/tone maps for event
-// types and watch state. Pure, dependency-free. (PLAN §4)
+// Presentation helpers over server timestamps (unix seconds) plus label/tone
+// maps for event types and watch state. Pure, dependency-free.
 
 /** Coerce a unix-seconds number (or ISO string) to epoch millis. */
 function toMillis(t?: number | string | null): number | null {
@@ -81,9 +80,9 @@ export function eventMeta(event: DeliveryEvent): { label: string; tone: Tone } {
 }
 
 /**
- * Display a watch's status from its `active` flag plus any live SSE state.
- * REST only knows active/paused; the connection detail (watching /
- * reconnecting / error) arrives over the `status` stream.
+ * Display a watch's status from its `active` flag plus any live SSE state. REST
+ * only knows active/paused; the connection detail arrives over the `status`
+ * stream.
  */
 export function watchDisplay(
   active: boolean,
@@ -100,9 +99,8 @@ export function watchDisplay(
     case "stopped":
       return { label: "Stopped", tone: "muted", pulse: false };
     default:
-      // Active in the store; the stream hasn't reported a connection state yet.
-      // Show it green like the header's "Live" indicator — active is healthy
-      // until the stream says otherwise (reconnecting/error handled above).
+      // Active in the store but the stream hasn't reported a state yet; treat
+      // active as healthy (green) until it says otherwise.
       return { label: "Active", tone: "success", pulse: true };
   }
 }
