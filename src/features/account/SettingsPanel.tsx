@@ -41,48 +41,43 @@ export function SettingsPanel() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Account name</CardTitle>
-          <CardDescription>
-            A local label for the account switcher.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex max-w-md items-end gap-2">
-            <div className="flex-1">
-              <Label htmlFor="acct-label">Label</Label>
-              <Input
-                id="acct-label"
-                value={label}
-                onChange={(e) => setLabel(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <Button
-              onClick={() => {
-                renameAccount(active.id, label.trim() || active.label);
-                toast.success("Renamed");
-              }}
-            >
-              Save
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <UserRound className="size-4 text-muted-foreground" />
-            Signed in
+            Account
           </CardTitle>
           <CardDescription>
             Your account is your email. Sign in again with it on any device — no
             password, nothing to copy or keep.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex h-9 items-center rounded-md border bg-muted/40 px-3 text-sm">
-            {me?.balance.email ?? active.label}
+        <CardContent className="max-w-md space-y-4">
+          <div>
+            <Label>Signed in as</Label>
+            <div className="mt-1 flex h-9 items-center rounded-md border bg-muted/40 px-3 text-sm">
+              {me?.balance.email ?? active.label}
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="acct-label">Name</Label>
+            <div className="mt-1 flex gap-2">
+              <Input
+                id="acct-label"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                onClick={() => {
+                  renameAccount(active.id, label.trim() || active.label);
+                  toast.success("Renamed");
+                }}
+              >
+                Save
+              </Button>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              A local label for the account switcher.
+            </p>
           </div>
         </CardContent>
       </Card>
