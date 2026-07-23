@@ -2,7 +2,7 @@
 
 A running record of what's built, what's real, and what's left. Pairs with the
 plan in [`PLAN.md`](PLAN.md) (milestones **U0–U6**) and the server design in
-[`../../carillon-backend/docs/`](../../carillon-backend/docs).
+[`carillon-backend/docs/`](../../backend/docs).
 
 ## Current state — 2026-07-22 (supersedes the dated entries below)
 
@@ -78,7 +78,7 @@ The watch-time credits model was replaced with a **single subscription** (server
 ## Landed — 2026-07-20 · aligned to the real server (OpenAPI)
 
 carillon-backend landed M1–M7 with a full OpenAPI contract
-([`openapi.yaml`](../../carillon-backend/docs/openapi.yaml)). The whole API
+([`openapi.yaml`](../../backend/docs/openapi.yaml)). The whole API
 boundary was rewritten to match that contract field-for-field, so the dashboard
 now **drives the real server** (mocks became the offline fallback). Point it with
 `VITE_API_BASE_URL=http://127.0.0.1:3000` (mocks auto-off).

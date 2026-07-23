@@ -7,7 +7,7 @@ nothing. Read this top-to-bottom before scaffolding.
 `carillon-backend` REST + SSE API. It's what the SaaS serves and what self-hosters
 get by default, but it's decoupled on purpose (the daemon owns the API contract;
 this is one consumer). See the product design it implements in
-[`carillon-backend/docs/`](../../carillon-backend/docs): `CARILLON_PLAN.md` (vision),
+[`carillon-backend/docs/`](../../backend/docs): `CARILLON_PLAN.md` (vision),
 `DECISIONS.md` (the design decisions — referenced below as **D§n**), `ROADMAP.md`
 (server milestones **M0–M8**).
 

@@ -1,6 +1,6 @@
 # carillon-frontend
 
-The **default / reference admin dashboard** for [Carillon](../carillon-backend) — a
+The **default / reference admin dashboard** for [Carillon](../backend) — a
 hosted watcher that turns a change on a remote mailbox into a content-free webhook.
 
 `carillon-frontend` is a **pure client** of the `carillon-backend` REST + SSE API. It's
@@ -11,7 +11,7 @@ one consumer of it. Self-hosters can embed this build or bring their own.
 > **Status:** the full UI — onboarding wizard, watches, live delivery log,
 > two-counter billing, account switcher — is built and typed against
 > `carillon-backend`'s OpenAPI contract
-> ([`carillon-backend/docs/openapi.yaml`](../carillon-backend/docs/openapi.yaml)),
+> ([`carillon-backend/docs/openapi.yaml`](../backend/docs/openapi.yaml)),
 > so it drives the real server. It also ships in-browser [MSW](https://mswjs.io)
 > mocks for offline UI work. See [`docs/STATUS.md`](docs/STATUS.md) for details
 > and [`docs/PLAN.md`](docs/PLAN.md) for the architecture.
@@ -63,5 +63,5 @@ Other scripts: `npm run build` (static `dist/`), `npm run preview`,
 
 See [`docs/PLAN.md`](docs/PLAN.md) for the full architecture, screens, API map, and
 milestones, and the sibling docs in
-[`carillon-backend/docs/`](../carillon-backend/docs) (`DECISIONS.md`, `ROADMAP.md`,
+[`carillon-backend/docs/`](../backend/docs) (`DECISIONS.md`, `ROADMAP.md`,
 `CARILLON_PLAN.md`) for the product design this UI implements.

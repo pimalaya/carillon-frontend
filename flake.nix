@@ -25,7 +25,7 @@
           pname = "carillon-frontend";
           version = "0.1.0";
           src = ./.;
-          npmDepsHash = "sha256-Gh/IZ2OzzgRM7VVi2ydnp9nlHXO7DYMucQ39tdgcFrY=";
+          npmDepsHash = "sha256-0wGhmqSGudxI2H5Kao21+o803+VsZgx5aHeGeT1EcL8=";
 
           # Real-server, same-origin build: empty VITE_API_BASE_URL => relative
           # requests; mocks explicitly off (a production build disables them
