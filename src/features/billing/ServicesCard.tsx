@@ -17,7 +17,20 @@ import { useSetAutoRenew } from "@/api/watches";
 import { formatDate } from "@/lib/format";
 import type { AccountMailbox } from "@/api/schemas";
 
-function ServiceRow({ m }: { m: AccountMailbox }) {
+/** IMAP mailbox vs CardDAV addressbook — the protocol behind this service. */
+type Protocol = "imap" | "carddav";
+
+function protocolLabel(protocol: Protocol): string {
+  return protocol === "carddav" ? "CardDAV" : "IMAP";
+}
+
+function ServiceRow({
+  m,
+  protocol,
+}: {
+  m: AccountMailbox;
+  protocol: Protocol;
+}) {
   const autoRenew = useSetAutoRenew();
   const watchId = m.watch_id;
 
@@ -29,7 +42,7 @@ function ServiceRow({ m }: { m: AccountMailbox }) {
           {m.mailbox && (
             <span className="text-muted-foreground">
               {" "}
-              · Watch IMAP {m.mailbox}
+              · Watch {protocolLabel(protocol)} {m.mailbox}
             </span>
           )}
         </div>
@@ -94,6 +107,9 @@ export function ServicesCard() {
   if (!me.metered) return null;
 
   const services = me.balance.mailboxes;
+  // The per-service balance rows don't carry the protocol; the watch does
+  // (source_kind), so key it by watch_id — the authoritative per-service value.
+  const kindByWatchId = new Map(me.watches.map((w) => [w.id, w.source_kind]));
 
   return (
     <Card>
@@ -117,7 +133,13 @@ export function ServicesCard() {
           </div>
         ) : (
           services.map((m) => (
-            <ServiceRow key={m.watch_id ?? m.mailbox_key} m={m} />
+            <ServiceRow
+              key={m.watch_id ?? m.mailbox_key}
+              m={m}
+              protocol={
+                (m.watch_id && kindByWatchId.get(m.watch_id)) || "imap"
+              }
+            />
           ))
         )}
       </CardContent>

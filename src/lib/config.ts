@@ -34,5 +34,6 @@ export function apiUrl(path: string): string {
 
 export function connectionLabel(): string {
   if (config.mocksEnabled) return "mock data";
-  return config.apiBaseUrl || "same-origin";
+  // Same-origin (empty base) resolves to the actual host serving the app.
+  return config.apiBaseUrl || window.location.origin;
 }

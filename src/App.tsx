@@ -3,6 +3,7 @@ import { RouterProvider } from "react-router-dom";
 
 import { router } from "./routes/router";
 import { Toaster } from "./components/ui/sonner";
+import { TooltipProvider } from "./components/ui/tooltip";
 
 // Queries are keyed by the active account's capability link, so switching
 // accounts re-scopes every query automatically.
@@ -19,8 +20,10 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      <Toaster richColors closeButton position="bottom-right" />
+      <TooltipProvider delayDuration={200}>
+        <RouterProvider router={router} />
+        <Toaster richColors closeButton position="bottom-right" />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

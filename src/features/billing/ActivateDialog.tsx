@@ -79,8 +79,15 @@ export function ActivateDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Credits to spend</span>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <span className="text-sm font-medium">Credits to spend</span>
+              <div className="text-sm text-muted-foreground italic">
+                After this operation, the service will continue be watched for{" "}
+                {credits} more month(s), and {pool - credits} credit(s) will
+                remain in the pool.
+              </div>
+            </div>
             <div className="flex items-center rounded-md border">
               <Button
                 variant="ghost"
@@ -103,22 +110,6 @@ export function ActivateDialog({
               >
                 <Plus />
               </Button>
-            </div>
-          </div>
-
-          <div className="space-y-1 rounded-md bg-muted/50 p-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Adds</span>
-              <span className="font-medium">
-                {credits} month{credits === 1 ? "" : "s"} of watching
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Pool after</span>
-              <span className="font-medium tabular-nums">
-                {pool} → {pool - credits} credit
-                {pool - credits === 1 ? "" : "s"}
-              </span>
             </div>
           </div>
         </div>

@@ -8,6 +8,11 @@ import { AccountSwitcher } from "./AccountSwitcher";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useStreamStatus } from "./StreamProvider";
 import { LiveIndicator } from "@/components/LiveIndicator";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { connectionLabel } from "@/lib/config";
 
 /** App frame (sidebar + top bar + routed content). Reads the app-wide stream
@@ -23,13 +28,17 @@ export function AppShell() {
         <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b bg-background/80 px-4 backdrop-blur">
           <Brand className="md:hidden" />
           <div className="ml-auto flex items-center gap-4">
-            <span
-              className="hidden font-mono text-xs text-muted-foreground sm:inline"
-              title={t("header.apiTitle")}
-            >
-              {connectionLabel()}
-            </span>
-            <LiveIndicator status={streamStatus} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-default">
+                  <LiveIndicator status={streamStatus} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="opacity-70">{t("header.apiTitle")}</p>
+                <p className="font-mono">{connectionLabel()}</p>
+              </TooltipContent>
+            </Tooltip>
             <LanguageSwitcher />
             <AccountSwitcher />
           </div>
