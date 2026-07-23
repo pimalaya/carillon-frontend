@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 import { Sidebar } from "./Sidebar";
+import { BetaBanner } from "./BetaBanner";
 import { Brand } from "./Brand";
 import { AccountSwitcher } from "./AccountSwitcher";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -35,6 +36,7 @@ export function AppShell() {
             <AccountSwitcher />
           </div>
         </header>
+        <BetaBanner />
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-6xl p-4 md:p-6">
             <Outlet />

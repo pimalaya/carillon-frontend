@@ -26,6 +26,12 @@ export const config = {
 
   /** Talk to in-browser mocks instead of a real server. */
   mocksEnabled: resolveMocks(),
+
+  /** Show the early-beta notice strip under the app bar. Flip to false at GA. */
+  betaBanner: true,
+
+  /** Where the beta banner's "send feedback" link points. */
+  feedbackUrl: "mailto:carillon@pimalaya.org?subject=Carillon%20feedback",
 } as const;
 
 /** Join the API base with a path, keeping same-origin URLs relative. */

@@ -19,6 +19,10 @@
   "header": {
     "apiTitle": "API à laquelle le tableau de bord est connecté"
   },
+  "banner": {
+    "beta": "Carillon est en bêta — la surveillance fonctionne réellement, mais la facturation est encore en mode test (aucun paiement réel).",
+    "feedback": "Envoyer un retour"
+  },
   "accountSwitcher": {
     "accounts": "Comptes",
     "addAccount": "Ajouter un compte",

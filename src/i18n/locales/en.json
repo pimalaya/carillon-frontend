@@ -19,6 +19,10 @@
   "header": {
     "apiTitle": "API the dashboard is talking to"
   },
+  "banner": {
+    "beta": "Carillon is in early beta — watches run for real, but billing is still in test mode (no real charges).",
+    "feedback": "Send feedback"
+  },
   "accountSwitcher": {
     "accounts": "Accounts",
     "addAccount": "Add account",
