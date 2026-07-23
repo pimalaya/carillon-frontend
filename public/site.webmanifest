@@ -1,0 +1,14 @@
+{
+  "name": "Carillon",
+  "short_name": "Carillon",
+  "description": "Content-free push notifications and webhooks for your accounts.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f1e2",
+  "theme_color": "#b64d2c",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ]
+}
