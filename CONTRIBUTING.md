@@ -6,8 +6,8 @@ Whether you are a human or an AI agent, read these in order before touching the 
 
 1. the [Pimalaya README](https://github.com/pimalaya) for what the project is and how its repositories stack;
 2. the [Pimalaya CONTRIBUTING](https://github.com/pimalaya/.github/blob/master/CONTRIBUTING.md) guide, which chains to the shared architecture and guidelines;
-3. the [cairn/](./cairn) folder, which follows the [Cairn](https://github.com/pimalaya/cairn) convention: `spec/` is the current design of this dashboard, `changes/` holds in-flight proposals, and `log/` the dated history. `AGENTS.md` at the root is the activation stanza.
-4. the sibling carillon-backend docs/ folder for the product design this UI implements.
+3. the [cairn/](./cairn) folder, which follows the [Cairn](https://github.com/pimalaya/cairn) convention: spec/ is the current design of this dashboard, changes/ holds in-flight proposals, and log/ the dated history. AGENTS.md at the root is the activation stanza.
+4. the sibling carillon-backend cairn/ folder for the product design this UI implements.
 
 Everything below documents only what differs from the Pimalaya standards.
 

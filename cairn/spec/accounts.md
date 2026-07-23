@@ -18,7 +18,7 @@ The header SHALL hold a switcher over the known Carillon accounts. Changing the 
 PIM accounts (watched mailboxes and addressbooks) SHALL live under a single Carillon account, and the dashboard SHALL offer a per-PIM-account filter. The credit pool SHALL be per-Carillon-account, shared across its PIM accounts.
 
 ### Requirement: Free credit grant
-On `POST /auth` the client SHALL surface the `free_credit` outcome — granted (🎁) or already-claimed-by-another-account — as a toast. The grant is the first service on a Carillon account running free for 7 days, deduplicated per account.
+On `POST /auth` the client SHALL surface the `free_credit` outcome (granted (🎁) or already-claimed-by-another-account) as a toast. The grant is the first service on a Carillon account running free for 7 days, deduplicated per account.
 
 ### Requirement: Sign out
 Signing out SHALL revoke the link server-side (`/signout`) and remove it from `localStorage`.

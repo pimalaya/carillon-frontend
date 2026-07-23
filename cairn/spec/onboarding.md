@@ -9,7 +9,7 @@ status: current
 Onboarding is split in two, along the account layers. **Add account** connects a PIM credential and mints the capability link; **add service** turns a stored credential into a live, metered watch. A Carillon account (magic-link) must exist first.
 
 ### Requirement: Two-level split
-Onboarding SHALL split into *add account* (`/onboarding`) — Identify + Authenticate only, which stores the PIM-account credential and mints the capability link, then stops — and *add service* (`/services/new`) — folder pick + notify + verify, reusing the stored credential via empty-password `POST /mailboxes` / `/watches`.
+Onboarding SHALL split into two flows. *Add account* (`/onboarding`) is Identify + Authenticate only, which stores the PIM-account credential and mints the capability link, then stops. *Add service* (`/services/new`) is folder pick + notify + verify, reusing the stored credential via empty-password `POST /mailboxes` / `/watches`.
 
 ### Requirement: Identify via discovery
 The Identify stage SHALL take one "email address or server" input and a Discover button calling `POST /discover` (public, rate-limited), then present the server's grouped **choices**, one card per `(server, auth method)`, each showing the auth label, `host:port`, and a TLS badge. The first TLS choice SHALL be auto-picked; a typed email SHALL default the login; login, host, port and folder stay editable. Unresolvable input SHALL fall back to manual entry.

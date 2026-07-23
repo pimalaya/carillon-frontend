@@ -21,4 +21,4 @@ The self-hosted (unmetered) build SHALL keep free pause/resume and SHALL NOT sho
 On create, the client SHALL generate the watch `id` and `hmac_secret` so the signing secret is shown once. Rotating SHALL reveal a fresh one.
 
 ### Requirement: Service detail and delivery log
-The detail view SHALL show status, mailbox/folder or collection, notify URL, the signing secret (reveal/rotate), pause/resume, and delete, plus a per-service delivery log — live via SSE, columns time / event / UID / HTTP status / attempts / ok-fail — showing UID only, never content.
+The detail view SHALL show status, mailbox/folder or collection, notify URL, the signing secret (reveal/rotate), pause/resume, and delete, plus a per-service delivery log (live via SSE, columns time / event / UID / HTTP status / attempts / ok-fail) showing UID only, never content.
