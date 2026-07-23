@@ -8,11 +8,14 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Private app: keep out of search engines and AI crawlers (the marketing
+         site is the public surface). Reinforced by public/robots.txt. -->
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
     <!--
       Content-free by design: the dashboard never renders message content. Keep
       the CSP tight; the capability link lives in storage/headers, never in URLs.
     -->
-    <title>Carillon | Frontend</title>
+    <title>Carillon: Frontend</title>
   </head>
   <body class="h-full">
     <div id="root" class="h-full"></div>

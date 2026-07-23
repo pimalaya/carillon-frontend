@@ -6,7 +6,7 @@ status: current
 
 # Principles
 
-Three governing invariants from the product design constrain every screen. They come from carillon-backend's design decisions and hold across the whole UI, not any single feature: the dashboard is content-free, login-less, and read-only.
+Four governing invariants from the product design constrain every screen. They come from carillon-backend's design decisions and hold across the whole UI, not any single feature: the dashboard is content-free, login-less, read-only, and not indexable.
 
 ### Requirement: Content-free
 No screen SHALL ever render message content — no sender, subject or body. Events carry only which account changed, the event type, and a UID. When tempted to show "what changed", the UI SHALL show the event type and UID and stop.
@@ -16,3 +16,6 @@ There SHALL be no password login screen; identity is a magic-link email. The cap
 
 ### Requirement: Read-only
 The UI SHALL NOT offer any write to a mailbox: no send, no `APPEND`, no "send test mail" button. The onboarding verify step SHALL wait for a real change rather than synthesise one, and delivery logs SHALL NOT offer redelivery or test-fire.
+
+### Requirement: Not indexable
+The dashboard is a private app and SHALL NOT be crawled or indexed. `public/robots.txt` SHALL disallow all crawlers (search and AI), and `index.html` SHALL carry a `noindex, nofollow` robots meta. The public, indexable surface is the marketing site (carillon.pimalaya.org), not this app. No SEO artefacts (sitemap, `llms.txt`, Open Graph) SHALL be added here.
