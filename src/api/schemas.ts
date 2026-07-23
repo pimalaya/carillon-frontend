@@ -268,11 +268,11 @@ export type AuthResult = z.infer<typeof authResultSchema>;
 // ── Account & credit pool (per-service, § BILLING_MODEL) ──────────────────────
 
 /** Credits per pack — the only refill unit. Mirrors billing.rs PACK_SIZE. */
-export const PACK_SIZE = 4;
+export const PACK_SIZE = 5;
 
 /** Per-credit price in EUR, for display only. The real charge is the Stripe
  *  Price object; this just labels the UI (1 credit = one service-month). */
-export const CREDIT_PRICE_EUR = 2.5;
+export const CREDIT_PRICE_EUR = 2;
 
 /** A service (or proven-but-unwatched mailbox) within an account view, with its
  *  per-service activation state. */

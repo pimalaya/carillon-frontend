@@ -73,9 +73,8 @@ export function CreditsCard() {
       <CardHeader>
         <CardTitle>Credits</CardTitle>
         <CardDescription>
-          1 credit = one month watching one mailbox (€
-          {CREDIT_PRICE_EUR.toFixed(2)}). Refill in packs of {PACK_SIZE} (€
-          {PACK_SIZE * CREDIT_PRICE_EUR}).
+          1 credit = one month watching one mailbox (€{CREDIT_PRICE_EUR}). Refill
+          in packs of {PACK_SIZE} (€{PACK_SIZE * CREDIT_PRICE_EUR}).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">

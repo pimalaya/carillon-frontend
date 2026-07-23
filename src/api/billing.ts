@@ -8,7 +8,7 @@ import { checkoutResponseSchema, type CheckoutResponse } from "./schemas";
 
 /**
  * POST /billing/checkout — buy `packs` packs of credits in one payment
- * (§ BILLING_MODEL: the only refill unit is a 4-credit pack). The server records
+ * (§ BILLING_MODEL: the only refill unit is a 5-credit pack). The server records
  * a pending session and returns the provider checkout URL; the pool is credited
  * later via /billing/webhook (in mock mode it settles immediately).
  */

@@ -24,7 +24,7 @@ const POINTS = [
   {
     icon: Wallet,
     title: "Pay per service",
-    body: "€2.50/month per service — a watched folder. Buy credits in packs of 4 — spend them when you like.",
+    body: "€2/month per service — a watched folder. Buy credits in packs of 5 — spend them when you like.",
   },
 ];
 

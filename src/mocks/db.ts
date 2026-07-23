@@ -16,13 +16,13 @@ import type {
 // Dev-only — lazily imported. (PLAN §7)
 //
 // Model: per-service credit pool (§ BILLING_MODEL). 1 credit = one month
-// watching one service (watch). Refill in packs of 4.
+// watching one service (watch). Refill in packs of 5.
 
 export const DEMO_LINK = "demo-cap-2f9a8c1e";
 
 const DAY = 86_400;
 const MONTH = 30 * DAY;
-const PACK_SIZE = 4;
+const PACK_SIZE = 5;
 const FREE_CREDITS = 1;
 
 interface MockWatch extends WatchView {
