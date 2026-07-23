@@ -9,7 +9,7 @@ import {
   mockTestWebhook,
 } from "./db";
 
-// MSW REST handlers over the in-memory mock DB, mirroring carillon-server's
+// MSW REST handlers over the in-memory mock DB, mirroring carillon-backend's
 // routes and wire shapes (api.rs / openapi.yaml). The SSE /events stream is
 // served by the synthetic generator in events.ts, not here. (PLAN §7)
 

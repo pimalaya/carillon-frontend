@@ -1,13 +1,13 @@
-# carillon-admin — build-from-scratch plan
+# carillon-frontend — build-from-scratch plan
 
-A complete plan for a separate session to build the Carillon admin dashboard from
+A complete plan for a separate session to build the Carillon frontend dashboard from
 nothing. Read this top-to-bottom before scaffolding.
 
 **What this is:** the default/reference SPA for Carillon — a **pure client** of the
-`carillon-server` REST + SSE API. It's what the SaaS serves and what self-hosters
+`carillon-backend` REST + SSE API. It's what the SaaS serves and what self-hosters
 get by default, but it's decoupled on purpose (the daemon owns the API contract;
 this is one consumer). See the product design it implements in
-[`carillon-server/docs/`](../../carillon-server/docs): `CARILLON_PLAN.md` (vision),
+[`carillon-backend/docs/`](../../carillon-backend/docs): `CARILLON_PLAN.md` (vision),
 `DECISIONS.md` (the design decisions — referenced below as **D§n**), `ROADMAP.md`
 (server milestones **M0–M8**).
 
@@ -47,11 +47,11 @@ content.
 
 ## 2. Scaffold (exact steps)
 
-The repo already exists (`carillon-admin/`, git-initialised) with `README.md`,
+The repo already exists (`carillon-frontend/`, git-initialised) with `README.md`,
 `docs/`, `.gitignore`. Scaffold *in place*:
 
 ```sh
-# from carillon-admin/
+# from carillon-frontend/
 npm create vite@latest . -- --template react-ts   # keep existing files when prompted
 npm i
 npm i @tanstack/react-query
@@ -69,7 +69,7 @@ in the CSS entry. Add path alias `@/*` → `src/*` in `tsconfig` + `vite.config.
 
 ## 3. Config / env
 
-- `VITE_API_BASE_URL` — the carillon-server base. **Default empty = same-origin**
+- `VITE_API_BASE_URL` — the carillon-backend base. **Default empty = same-origin**
   (self-host embed). SaaS sets it to the API host (cross-origin → CORS + Bearer).
 - `.env.example` documents it; never commit real `.env`.
 - A single `src/lib/config.ts` reads it; everything else imports from there.
@@ -195,7 +195,7 @@ On success, store/refresh the capability link and route to the dashboard.
 
 ## 7. API map
 
-**Exists in `carillon-server` today** (see its `src/api.rs`):
+**Exists in `carillon-backend` today** (see its `src/api.rs`):
 `GET /health` · `GET /watches` · `POST /watches` · `DELETE /watches/{id}` ·
 `POST /watches/{id}/pause` · `POST /watches/{id}/resume` ·
 `GET /deliveries?account=&limit=`.
@@ -238,7 +238,7 @@ types; generate a typed client from it when available, else hand-write in
 ## 10. Build & deploy (D§6)
 
 - `vite build` → static `dist/`. No server.
-- **Self-host:** carillon-server embeds a pinned `dist/` via `rust-embed` (its
+- **Self-host:** carillon-backend embeds a pinned `dist/` via `rust-embed` (its
   build step vendors this repo's build), served at the daemon's origin (no CORS).
   Or the self-hoster serves `dist/` themselves / BYO UI.
 - **SaaS:** deploy `dist/` to a CDN/Netlify; set `VITE_API_BASE_URL` to the API
@@ -267,13 +267,13 @@ types; generate a typed client from it when available, else hand-write in
 - **U5 — Polish + real API.** Swap MSW for the real endpoints as they land
   (`VITE_API_BASE_URL`), OpenAPI-generated types, error/empty/loading states,
   a11y, CSP.
-- **U6 — Ship both fronts.** Verify embed path (rust-embed in carillon-server) and
+- **U6 — Ship both fronts.** Verify embed path (rust-embed in carillon-backend) and
   CDN path; document the two deploys.
 
 ## 13. Depends-on / open
 
 - Server endpoints in §7 marked *planned* gate U3–U5 against real data (mock until
-  then). Coordinate with carillon-server **M2/M4/M5/M7**.
+  then). Coordinate with carillon-backend **M2/M4/M5/M7**.
 - Capability-link format + expiry/rotation semantics come from the server (D§5);
   the UI just stores and sends. Confirm the header/param convention when M7 lands.
 - OAuth flows (Gmail/MS) for read-only scopes (D§7) — the UI initiates and handles

@@ -1,9 +1,9 @@
 {
-  "name": "carillon-admin",
-  "private": true,
-  "version": "0.0.0",
+  "name": "carillon-frontend",
+  "version": "0.1.0",
   "type": "module",
-  "description": "Default/reference admin dashboard for Carillon — a pure client of the carillon-server REST + SSE API.",
+  "private": true,
+  "description": "Default/reference admin dashboard for Carillon — a pure client of the carillon-backend REST + SSE API.",
   "license": "MIT OR Apache-2.0",
   "scripts": {
     "dev": "vite",

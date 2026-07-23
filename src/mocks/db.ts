@@ -10,7 +10,7 @@ import type {
   WatchView,
 } from "@/api/schemas";
 
-// In-browser mock backend, faithful to carillon-server's OpenAPI wire shapes
+// In-browser mock backend, faithful to carillon-backend's OpenAPI wire shapes
 // (snake_case, unix seconds). It stands in when there's no real server to point
 // at; the real testing path is VITE_API_BASE_URL + VITE_ENABLE_MOCKS=false.
 // Dev-only — lazily imported. (PLAN §7)

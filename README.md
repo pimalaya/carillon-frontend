@@ -1,22 +1,22 @@
-# carillon-admin
+# carillon-frontend
 
-The **default / reference admin dashboard** for [Carillon](../carillon-server) — a
+The **default / reference admin dashboard** for [Carillon](../carillon-backend) — a
 hosted watcher that turns a change on a remote mailbox into a content-free webhook.
 
-`carillon-admin` is a **pure client** of the `carillon-server` REST + SSE API. It's
+`carillon-frontend` is a **pure client** of the `carillon-backend` REST + SSE API. It's
 what the SaaS serves and what self-hosters get out of the box — but it's a *separate
 repo on purpose*: the daemon owns the API contract (OpenAPI), and this UI is just
 one consumer of it. Self-hosters can embed this build or bring their own.
 
 > **Status:** the full UI — onboarding wizard, watches, live delivery log,
 > two-counter billing, account switcher — is built and typed against
-> `carillon-server`'s OpenAPI contract
-> ([`carillon-server/docs/openapi.yaml`](../carillon-server/docs/openapi.yaml)),
+> `carillon-backend`'s OpenAPI contract
+> ([`carillon-backend/docs/openapi.yaml`](../carillon-backend/docs/openapi.yaml)),
 > so it drives the real server. It also ships in-browser [MSW](https://mswjs.io)
 > mocks for offline UI work. See [`docs/STATUS.md`](docs/STATUS.md) for details
 > and [`docs/PLAN.md`](docs/PLAN.md) for the architecture.
 
-## Drive a real carillon-server
+## Drive a real carillon-backend
 
 ```sh
 # 1. allow this dev origin in the server config (carillon.toml):
@@ -24,10 +24,10 @@ one consumer of it. Self-hosters can embed this build or bring their own.
 #      listen = "127.0.0.1:3000"
 #      cors_allow_origin = "http://localhost:5173"
 #    then run the daemon (serves http://127.0.0.1:3000):
-carillon-server serve carillon.toml
+carillon-backend serve carillon.toml
 
 # 2. point the dashboard at it (mocks turn off automatically)
-cd carillon-admin
+cd carillon-frontend
 npm install
 echo 'VITE_API_BASE_URL=http://127.0.0.1:3000' > .env.local
 npm run dev            # http://localhost:5173
@@ -63,5 +63,5 @@ Other scripts: `npm run build` (static `dist/`), `npm run preview`,
 
 See [`docs/PLAN.md`](docs/PLAN.md) for the full architecture, screens, API map, and
 milestones, and the sibling docs in
-[`carillon-server/docs/`](../carillon-server/docs) (`DECISIONS.md`, `ROADMAP.md`,
+[`carillon-backend/docs/`](../carillon-backend/docs) (`DECISIONS.md`, `ROADMAP.md`,
 `CARILLON_PLAN.md`) for the product design this UI implements.

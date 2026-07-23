@@ -4,7 +4,7 @@ import { apiUrl, config } from "./config";
 import { getActiveLink, useAuth } from "./auth";
 import { streamEventSchema, type StreamEvent } from "@/api/schemas";
 
-// Live stream: carillon-server's GET /events is a content-free SSE feed of
+// Live stream: carillon-backend's GET /events is a content-free SSE feed of
 // named events — `delivery`, `status`, `notice` (plus `lagged`) — each data
 // payload a JSON object tagged with `type`. It is **authenticated and scoped**:
 // the server validates the account's capability link and forwards only that

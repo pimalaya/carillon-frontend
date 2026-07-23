@@ -1,12 +1,12 @@
-# carillon-admin — build status
+# carillon-frontend — build status
 
 A running record of what's built, what's real, and what's left. Pairs with the
 plan in [`PLAN.md`](PLAN.md) (milestones **U0–U6**) and the server design in
-[`../../carillon-server/docs/`](../../carillon-server/docs).
+[`../../carillon-backend/docs/`](../../carillon-backend/docs).
 
 ## Current state — 2026-07-22 (supersedes the dated entries below)
 
-Drives a **real carillon-server** (Resend magic-link email + Stripe pack
+Drives a **real carillon-backend** (Resend magic-link email + Stripe pack
 checkout both verified live). `tsc` + `vite build` + 12 unit tests green.
 Billing model = **prepaid credit pool + magic-link accounts** (the subscription
 entry below was reverted; ignore it).
@@ -41,7 +41,7 @@ entry below was reverted; ignore it).
   `source_kind=carddav`, reusing the account's stored credential via the link),
   and creates a `source_kind=carddav` watch. The dashboard tags addressbook rows
   with an **Addressbook** chip. Schemas gained `source_kind` / `carddav_url` /
-  `sync`; `useTestCardDav` added. (Server side: `carillon-server/docs/CARDDAV.md`.)
+  `sync`; `useTestCardDav` added. (Server side: `carillon-backend/docs/CARDDAV.md`.)
 - **i18n (react-i18next, en + fr).** `src/i18n/` (config + `locales/en.json` /
   `fr.json`), browser-language-detected, remembered in `localStorage`
   (`carillon.lang`), `<html lang>` synced. A header **language switcher**. Wired:
@@ -77,8 +77,8 @@ The watch-time credits model was replaced with a **single subscription** (server
 
 ## Landed — 2026-07-20 · aligned to the real server (OpenAPI)
 
-carillon-server landed M1–M7 with a full OpenAPI contract
-([`openapi.yaml`](../../carillon-server/docs/openapi.yaml)). The whole API
+carillon-backend landed M1–M7 with a full OpenAPI contract
+([`openapi.yaml`](../../carillon-backend/docs/openapi.yaml)). The whole API
 boundary was rewritten to match that contract field-for-field, so the dashboard
 now **drives the real server** (mocks became the offline fallback). Point it with
 `VITE_API_BASE_URL=http://127.0.0.1:3000` (mocks auto-off).
@@ -126,7 +126,7 @@ mocks + synthetic SSE, and `format`/`auth` unit tests. Milestones U0–U4.
 
 ## Landed — 2026-07-20 · authenticated, scoped live stream
 
-The server gained **route scoping + authed SSE** (carillon-server M8), so the
+The server gained **route scoping + authed SSE** (carillon-backend M8), so the
 admin's stream had to change: browsers' native `EventSource` can't send an
 `Authorization` header, so `lib/sse.ts` now reads `GET /events` via an
 **authenticated fetch stream** — Bearer capability link in the header, SSE
@@ -137,7 +137,7 @@ UI now drives the scoped server (each account sees only its own data).
 
 ## Landed — 2026-07-20 · discovery in onboarding
 
-The server gained `POST /discover` (io-pim-discovery; carillon-server M9), so
+The server gained `POST /discover` (io-pim-discovery; carillon-backend M9), so
 the **Identify stage was rewritten** from a client-side domain guess to a real
 "put anything → discover → choose" flow (himalaya/ortie-style, web):
 
@@ -146,7 +146,7 @@ the **Identify stage was rewritten** from a client-side domain guess to a real
   `discoverResponse` zod schemas mirror the server.
 - The server groups results into **choices** — one per `(server, auth method)`,
   mechanism/source dropped — so e.g. Fastmail shows exactly one **Password**
-  card and one **OAuth** card (see carillon-server discover.rs). Each card
+  card and one **OAuth** card (see carillon-backend discover.rs). Each card
   shows the auth label + `host:port` + a TLS badge; the chosen `auth` method
   (kind + OAuth endpoints) is stored in the wizard for the next stage. The
   first TLS choice is auto-picked; a **typed email defaults the login**;
@@ -172,7 +172,7 @@ the **Identify stage was rewritten** from a client-side domain guess to a real
 
 ## Next
 
-- Run against a live carillon-server and reconcile any shape drift; consider
+- Run against a live carillon-backend and reconcile any shape drift; consider
   generating a typed client from the OpenAPI instead of the hand-written schemas.
 - Wire real OAuth (Gmail/MS) once the server grows it.
 - U6: verify the two serve paths — `rust-embed` (self-host, same-origin) and CDN

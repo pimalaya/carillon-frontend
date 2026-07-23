@@ -3,7 +3,7 @@ import type { StreamHandlers } from "@/lib/sse";
 
 import { mockDb } from "./db";
 
-// Synthetic SSE generator standing in for carillon-server's GET /events. Emits
+// Synthetic SSE generator standing in for carillon-backend's GET /events. Emits
 // content-free `delivery` and `status` events (matching live.rs shapes) for the
 // active watches, so the "live log firing" moment works fully offline. Global,
 // like the real stream. (PLAN §6.1, §8)
