@@ -58,7 +58,7 @@ The dashboard is a pure client, so its only configuration is where to reach the 
 
 ## Usage
 
-Run `npm run dev` for a hot-reloading dev server, `npm run build` for the production bundle, and `npm run test` for the unit tests. Every screen maps onto the carillon-backend control API described by the OpenAPI contract at [carillon-backend/docs/openapi.yaml](../backend/docs/openapi.yaml); the architecture, screen map and build history live in the [cairn](./cairn) folder, which follows the [Cairn](https://github.com/pimalaya/cairn) convention (`spec/` current design, `changes/` proposals, `log/` history).
+Run `npm run dev` for a hot-reloading dev server, `npm run build` for the production bundle, and `npm run test` for the unit tests. Every screen maps onto the carillon-backend control API described by the OpenAPI contract at [carillon-backend/openapi.yaml](../backend/openapi.yaml); the architecture, screen map and build history live in the [cairn](./cairn) folder, which follows the [Cairn](https://github.com/pimalaya/cairn) convention (`spec/` current design, `changes/` proposals, `log/` history).
 
 ## License
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, KeyRound, LogOut, ShieldAlert } from "lucide-react";
+import { BookOpen, LogOut, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -13,20 +13,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CopyButton } from "@/components/CopyButton";
 import { useSignout } from "@/api/onboarding";
+import { useMe } from "@/api/me";
 import { useAuth } from "@/lib/auth";
-
-function maskLink(link: string): string {
-  if (link.length <= 12) return "••••••";
-  return `${link.slice(0, 6)}…${link.slice(-4)}`;
-}
 
 export function SettingsPanel() {
   const navigate = useNavigate();
   const { active, renameAccount, removeAccount, clearAll } = useAuth();
   const signout = useSignout();
+  const { data: me } = useMe();
   const [label, setLabel] = useState(active?.label ?? "");
 
   if (!active) return null;
@@ -77,29 +72,18 @@ export function SettingsPanel() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <KeyRound className="size-4 text-muted-foreground" />
-            Capability link
+            <UserRound className="size-4 text-muted-foreground" />
+            Signed in
           </CardTitle>
           <CardDescription>
-            This link <em>is</em> your login. Anyone with it controls the
-            account.
+            Your account is your email. Sign in again with it on any device — no
+            password, nothing to copy or keep.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center gap-2">
-            <code className="flex h-9 flex-1 items-center rounded-md border bg-muted/40 px-3 font-mono text-sm">
-              {maskLink(active.link)}
-            </code>
-            <CopyButton value={active.link} label="Link" variant="outline" />
+        <CardContent>
+          <div className="flex h-9 items-center rounded-md border bg-muted/40 px-3 text-sm">
+            {me?.balance.email ?? active.label}
           </div>
-          <Alert variant="warning">
-            <ShieldAlert />
-            <AlertTitle>Keep it secret</AlertTitle>
-            <AlertDescription>
-              Store it in a password manager. Lost it? Sign in again with your
-              email to mint a fresh link.
-            </AlertDescription>
-          </Alert>
         </CardContent>
       </Card>
 
@@ -136,7 +120,7 @@ export function SettingsPanel() {
         <CardHeader>
           <CardTitle className="text-base">Sign out</CardTitle>
           <CardDescription>
-            Revokes the link server-side and removes it from this browser.
+            Ends this session on this device and revokes it server-side.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">

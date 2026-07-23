@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Typed API boundary — mirrors carillon-backend/docs/openapi.yaml field-for-field.
+// Typed API boundary — mirrors carillon-backend/openapi.yaml field-for-field.
 // Wire fields are snake_case, timestamps unix seconds; kept snake_case so there's
 // no lossy transform between wire and UI.
 //

@@ -6,10 +6,10 @@ status: current
 
 # Accounts
 
-There are two account layers. A **Carillon account** is a magic-link identity that owns the credit pool and holds one or more **PIM accounts** (the watched mailboxes/addressbooks). The capability link minted at sign-in is the credential for everything under it.
+There are two account layers. A **Carillon account** is a magic-link email identity that owns the credit pool and holds one or more **PIM accounts** (the watched mailboxes/addressbooks). The email is the identity; the capability link minted at sign-in is the internal session token that authenticates everything under it (see [[principles]]) and is never surfaced to the user.
 
 ### Requirement: Carillon accounts via magic link
-A Carillon account SHALL be a magic-link identity. "Add account" SHALL send a magic link; verifying it mints the capability link. Accounts SHALL be stored in `localStorage`, keyed by the server `accountId`.
+A Carillon account SHALL be a magic-link email identity. "Add account" SHALL send a magic link; verifying it mints the session token. Accounts SHALL be stored in `localStorage`, keyed by the server `accountId`. Settings SHALL show the signed-in email, not the token.
 
 ### Requirement: Account switcher
 The header SHALL hold a switcher over the known Carillon accounts. Changing the active account SHALL re-scope every query to that account's capability link. A returning visitor with a cached link SHALL land straight in their dashboard.

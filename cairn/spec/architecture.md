@@ -18,7 +18,7 @@ The app SHALL use Tailwind CSS v4 (via the `@tailwindcss/vite` plugin) with owne
 Code SHALL be organised as `src/lib` (config, api wrapper, sse, auth, format), `src/api` (one module per resource: typed calls + Query hooks + Zod schemas), `src/components` (shadcn primitives + shared components), `src/features` (onboarding, services, deliveries, billing, account), and `src/routes` (route components wiring features together).
 
 ### Requirement: Typed API boundary
-Every screen SHALL be typed against the carillon-backend OpenAPI contract at `../backend/docs/openapi.yaml`, with wire shapes (snake_case fields, unix-seconds timestamps, watch-time as float seconds) read as the server sends them and no transform layer. Behavioural correctness SHALL be verified against that contract rather than assumed.
+Every screen SHALL be typed against the carillon-backend OpenAPI contract at `../backend/openapi.yaml`, with wire shapes (snake_case fields, unix-seconds timestamps, watch-time as float seconds) read as the server sends them and no transform layer. Behavioural correctness SHALL be verified against that contract rather than assumed.
 
 ### Requirement: Runtime configuration
 `VITE_API_BASE_URL` SHALL select the carillon-backend base, defaulting to empty (same-origin, for the self-host embed) and set to the API host for the hosted service. A single `src/lib/config.ts` SHALL read it and everything else SHALL import from there. Real `.env` values SHALL NOT be committed; `.env.example` documents the variable.

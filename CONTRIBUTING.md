@@ -21,4 +21,4 @@ Development runs through npm: `npm install` once, then `npm run dev` for the dev
 
 ## Client of a contract
 
-The dashboard is a pure client of the carillon-backend control API. Screens are typed against that server's OpenAPI contract at ../backend/docs/openapi.yaml; behavioural correctness is verified against it rather than assumed. An in-browser mock backend backs offline UI work.
+The dashboard is a pure client of the carillon-backend control API. Screens are typed against that server's OpenAPI contract at ../backend/openapi.yaml; behavioural correctness is verified against it rather than assumed. An in-browser mock backend backs offline UI work.

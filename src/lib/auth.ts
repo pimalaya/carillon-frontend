@@ -2,10 +2,11 @@ import { useSyncExternalStore } from "react";
 
 import { shortId } from "./utils";
 
-// Login-less accounts (D§5): access to an account is a capability link — an
-// unguessable bearer token minted by the server on first mailbox auth, held in
-// localStorage. The server is the real gate; this store only decides what the
-// UI renders and which link to send.
+// Accounts are magic-link email identities. The capability link is the internal
+// bearer session token the server mints on magic-link verification, held in
+// localStorage — never surfaced to the user (recovery is a new magic link, not a
+// kept link). The server is the real gate; this store only decides what the UI
+// renders and which token to send.
 
 export interface StoredAccount {
   /** Client-side id, not the server account id. */
