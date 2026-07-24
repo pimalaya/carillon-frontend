@@ -10,6 +10,7 @@ import { WatchDetailPage } from "./WatchDetailPage";
 import { ServiceWizardPage } from "./ServiceWizardPage";
 import { WelcomePage } from "./WelcomePage";
 import { VerifyPage } from "./VerifyPage";
+import { AdminPage } from "./AdminPage";
 import { NotFoundPage } from "./NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -18,6 +19,10 @@ export const router = createBrowserRouter([
     children: [
       { path: "welcome", element: <WelcomePage /> },
       { path: "verify", element: <VerifyPage /> },
+      // Localhost-only admin console (§ admin-route). Outside RequireAccount:
+      // admin authorization is enforced by the backend loopback listener, not
+      // by the capability-link gate. Not linked from any nav — type /admin.
+      { path: "admin", element: <AdminPage /> },
       {
         // Children require a stored capability link and render in the app shell.
         element: <RequireAccount />,
