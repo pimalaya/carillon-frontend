@@ -10,7 +10,6 @@ import { WatchDetailPage } from "./WatchDetailPage";
 import { ServiceWizardPage } from "./ServiceWizardPage";
 import { WelcomePage } from "./WelcomePage";
 import { VerifyPage } from "./VerifyPage";
-import { AdminPage } from "./AdminPage";
 import { NotFoundPage } from "./NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -22,7 +21,15 @@ export const router = createBrowserRouter([
       // Localhost-only admin console (§ admin-route). Outside RequireAccount:
       // admin authorization is enforced by the backend loopback listener, not
       // by the capability-link gate. Not linked from any nav — type /admin.
-      { path: "admin", element: <AdminPage /> },
+      // Lazily loaded so the admin code and its `/admin/*` API paths are split
+      // into their own chunk, out of the main bundle served on the public origin.
+      {
+        path: "admin",
+        lazy: async () => {
+          const { AdminPage } = await import("./AdminPage");
+          return { Component: AdminPage };
+        },
+      },
       {
         // Children require a stored capability link and render in the app shell.
         element: <RequireAccount />,

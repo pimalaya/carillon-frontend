@@ -20,7 +20,8 @@ route SHALL sit outside the normal capability-link account gate (`RequireAccount
 since admin authorization is enforced by the backend admin listener (loopback +
 email whitelist / admin token), not by the client. The active capability link is
 still sent as the bearer, so a whitelisted-email session authenticates the admin
-API calls.
+API calls. The route SHALL be code-split (loaded lazily) so the admin code and its
+`/admin/*` API paths are not part of the main bundle served on the public origin.
 
 ### Requirement: Clicking an account opens its services dialog
 Clicking an account row SHALL open a dialog listing that account's individual

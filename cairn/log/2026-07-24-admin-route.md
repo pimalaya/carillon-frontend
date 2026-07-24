@@ -43,6 +43,16 @@ table merges mailbox (title) + protocol (muted subtitle) into one column and add
 a "Watches until" column from the watch's `watching_until` (added to the shared
 `WatchView`, additive/non-strict so existing consumers are unaffected).
 
+## Follow-up: code-split the admin route (same day)
+
+To keep the admin code and its `/admin/*` API paths out of the main bundle served
+on the public origin, the `/admin` route is now loaded via React Router's route
+`lazy` (`import("./AdminPage")`) instead of a static import. The build emits a
+separate `AdminPage-*.js` chunk; the main `index-*.js` bundle contains zero
+`/admin/*` references (verified against `dist/assets`). The chunk is still served
+as a static asset (the loopback bind, not obscurity, remains the control), but it
+is no longer in what every public visitor downloads.
+
 ## Capabilities moved
 
 - **admin** (new) — ADDED "The admin console is an undiscoverable /admin route",
